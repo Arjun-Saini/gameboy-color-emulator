@@ -1,0 +1,11 @@
+#ifndef GAMEBOY_COLOR_EMULATOR_APU_H
+#define GAMEBOY_COLOR_EMULATOR_APU_H
+
+
+class APU {
+public:
+    APU();
+};
+
+
+#endif //GAMEBOY_COLOR_EMULATOR_APU_H
