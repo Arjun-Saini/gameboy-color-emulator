@@ -1,6 +1,6 @@
 #include "Debug.h"
 
-void Debug::print_gb_mem(CPU cpu, int mode) {
+void Debug::print_gb_mem(CPU cpu, int mode, int width) {
     int start;
     int end;
 
@@ -21,7 +21,7 @@ void Debug::print_gb_mem(CPU cpu, int mode) {
 
     for(int i = start; i <= end; i++){
         std::cout << std::hex << int(cpu.mmu.gb_memory[i]) << " ";
-        if(!((i + 1 )% 32)){
+        if(!((i + 1 )% width)){
             std::cout << std::endl;
         }
     }

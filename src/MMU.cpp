@@ -19,8 +19,10 @@ void MMU::load_ROM(std::string exec_path, std::string file_name) {
         ROM = std::ifstream(gbcPath, std::ios::binary);
         if(!ROM.is_open()){
             std::cout << "Failed to open ROM" << std::endl;
+            return;
         }
     }
+    std::cout << "ROM opened successfully" << std::endl;
 
     ROM.seekg(0, std::ios::end);
     std::streamoff fileSize = ROM.tellg();
@@ -33,6 +35,9 @@ void MMU::load_ROM(std::string exec_path, std::string file_name) {
     // Copy buffer into cartridge memory
     for(int i = 0; i < fileSize; i++){
         cartridge_memory[i] = buffer[i];
+        if(i <= 0x3FFF){
+            gb_memory[i] = buffer[i];
+        }
     }
 }
 

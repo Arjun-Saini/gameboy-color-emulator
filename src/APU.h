@@ -5,6 +5,7 @@
 class APU {
 public:
     APU();
+    void tick();
 };
 
 

@@ -5,6 +5,7 @@
 class PPU {
 public:
     PPU();
+    void tick();
 };
 
 

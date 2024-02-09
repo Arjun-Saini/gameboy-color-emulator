@@ -3,3 +3,7 @@
 PPU::PPU() {
 
 }
+
+void PPU::tick() {
+
+}

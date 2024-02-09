@@ -3,3 +3,7 @@
 APU::APU() {
 
 }
+
+void APU::tick() {
+
+}
