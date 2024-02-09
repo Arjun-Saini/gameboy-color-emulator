@@ -46,7 +46,7 @@ CPU::CPU() {
     mmu.gb_memory[0xFFFF] = 0x00;
 }
 
-void CPU::LD_R8_R8(uint8_t* r1, uint8_t r2) {
+void CPU::LD_r8_r8(uint8_t* r1, uint8_t r2) {
     *r1 = r2;
     t_cycles += 4;
 }
@@ -710,100 +710,142 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x3F:
                 break;
             case 0x40:
+                LD_r8_r8(&registers.reg_B, registers.reg_B);
                 break;
             case 0x41:
+                LD_r8_r8(&registers.reg_C, registers.reg_B);
                 break;
             case 0x42:
+                LD_r8_r8(&registers.reg_D, registers.reg_B);
                 break;
             case 0x43:
+                LD_r8_r8(&registers.reg_E, registers.reg_B);
                 break;
             case 0x44:
+                LD_r8_r8(&registers.reg_H, registers.reg_B);
                 break;
             case 0x45:
+                LD_r8_r8(&registers.reg_L, registers.reg_B);
                 break;
             case 0x46:
                 break;
             case 0x47:
+                LD_r8_r8(&registers.reg_B, registers.reg_A);
                 break;
             case 0x48:
+                LD_r8_r8(&registers.reg_C, registers.reg_B);
                 break;
             case 0x49:
+                LD_r8_r8(&registers.reg_C, registers.reg_C);
                 break;
             case 0x4A:
+                LD_r8_r8(&registers.reg_C, registers.reg_D);
                 break;
             case 0x4B:
+                LD_r8_r8(&registers.reg_C, registers.reg_E);
                 break;
             case 0x4C:
+                LD_r8_r8(&registers.reg_C, registers.reg_H);
                 break;
             case 0x4D:
+                LD_r8_r8(&registers.reg_C, registers.reg_L);
                 break;
             case 0x4E:
                 break;
             case 0x4F:
+                LD_r8_r8(&registers.reg_C, registers.reg_A);
                 break;
             case 0x50:
+                LD_r8_r8(&registers.reg_D, registers.reg_B);
                 break;
             case 0x51:
+                LD_r8_r8(&registers.reg_D, registers.reg_C);
                 break;
             case 0x52:
+                LD_r8_r8(&registers.reg_D, registers.reg_D);
                 break;
             case 0x53:
+                LD_r8_r8(&registers.reg_D, registers.reg_E);
                 break;
             case 0x54:
+                LD_r8_r8(&registers.reg_D, registers.reg_H);
                 break;
             case 0x55:
+                LD_r8_r8(&registers.reg_D, registers.reg_L);
                 break;
             case 0x56:
                 break;
             case 0x57:
+                LD_r8_r8(&registers.reg_D, registers.reg_A);
                 break;
             case 0x58:
+                LD_r8_r8(&registers.reg_E, registers.reg_B);
                 break;
             case 0x59:
+                LD_r8_r8(&registers.reg_E, registers.reg_C);
                 break;
             case 0x5A:
+                LD_r8_r8(&registers.reg_E, registers.reg_D);
                 break;
             case 0x5B:
+                LD_r8_r8(&registers.reg_E, registers.reg_E);
                 break;
             case 0x5C:
+                LD_r8_r8(&registers.reg_E, registers.reg_H);
                 break;
             case 0x5D:
+                LD_r8_r8(&registers.reg_E, registers.reg_L);
                 break;
             case 0x5E:
                 break;
             case 0x5F:
+                LD_r8_r8(&registers.reg_E, registers.reg_A);
                 break;
             case 0x60:
+                LD_r8_r8(&registers.reg_H, registers.reg_B);
                 break;
             case 0x61:
+                LD_r8_r8(&registers.reg_H, registers.reg_C);
                 break;
             case 0x62:
+                LD_r8_r8(&registers.reg_H, registers.reg_D);
                 break;
             case 0x63:
+                LD_r8_r8(&registers.reg_H, registers.reg_E);
                 break;
             case 0x64:
+                LD_r8_r8(&registers.reg_H, registers.reg_H);
                 break;
             case 0x65:
+                LD_r8_r8(&registers.reg_H, registers.reg_L);
                 break;
             case 0x66:
                 break;
             case 0x67:
+                LD_r8_r8(&registers.reg_H, registers.reg_A);
                 break;
             case 0x68:
+                LD_r8_r8(&registers.reg_L, registers.reg_B);
                 break;
             case 0x69:
+                LD_r8_r8(&registers.reg_L, registers.reg_C);
                 break;
             case 0x6A:
+                LD_r8_r8(&registers.reg_L, registers.reg_D);
                 break;
             case 0x6B:
+                LD_r8_r8(&registers.reg_L, registers.reg_E);
                 break;
             case 0x6C:
+                LD_r8_r8(&registers.reg_L, registers.reg_H);
                 break;
             case 0x6D:
+                LD_r8_r8(&registers.reg_L, registers.reg_L);
                 break;
             case 0x6E:
                 break;
             case 0x6F:
+                LD_r8_r8(&registers.reg_L, registers.reg_A);
                 break;
             case 0x70:
                 break;
@@ -822,20 +864,27 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x77:
                 break;
             case 0x78:
+                LD_r8_r8(&registers.reg_A, registers.reg_B);
                 break;
             case 0x79:
+                LD_r8_r8(&registers.reg_A, registers.reg_C);
                 break;
             case 0x7A:
+                LD_r8_r8(&registers.reg_A, registers.reg_D);
                 break;
             case 0x7B:
+                LD_r8_r8(&registers.reg_A, registers.reg_E);
                 break;
             case 0x7C:
+                LD_r8_r8(&registers.reg_A, registers.reg_H);
                 break;
             case 0x7D:
+                LD_r8_r8(&registers.reg_A, registers.reg_L);
                 break;
             case 0x7E:
                 break;
             case 0x7F:
+                LD_r8_r8(&registers.reg_A, registers.reg_A);
                 break;
             case 0x80:
                 break;
