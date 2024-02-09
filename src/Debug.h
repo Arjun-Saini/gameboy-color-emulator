@@ -6,7 +6,11 @@
 
 class Debug {
 public:
-    void print_gb_mem(CPU cpu, int mode, int width);
+    CPU* cpu;
+
+    Debug(CPU* cpu);
+    void print_gb_mem(int mode, int width);
+    void print_registers();
 };
 
 

@@ -23,7 +23,7 @@ public:
     uint16_t next_opcode();
     void decode_opcode(uint16_t opcode);
 
-    int LD_R8_R8(uint16_t register1, uint16_t register2);
+    void LD_R8_R8(uint8_t* r1, uint8_t r2);
 };
 
 

@@ -46,8 +46,9 @@ CPU::CPU() {
     mmu.gb_memory[0xFFFF] = 0x00;
 }
 
-int CPU::LD_R8_R8(uint16_t register1, uint16_t register2) {
-
+void CPU::LD_R8_R8(uint8_t* r1, uint8_t r2) {
+    *r1 = r2;
+    t_cycles += 4;
 }
 
 // Returns opcode at program_counter
@@ -59,10 +60,10 @@ uint16_t CPU::next_opcode() {
     return opcode;
 }
 
-// Set t_cycles to opcode duration, then execute opcode
+// Decodes opcode and executes instruction
 void CPU::decode_opcode(uint16_t opcode) {
     if((opcode & 0xFF00) >> 8 == 0xCB){
-        // TODO CB-prefixed opcodes
+        // CB-prefixed opcodes
         switch (opcode & 0xFF) {
             case 0x00:
                 break;
@@ -578,7 +579,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 break;
         }
     }else{
-        // TODO Non CB-prefixed opcodes
+        // Non CB-prefixed opcodes
         switch (opcode & 0xFF) {
             case 0x00:
                 break;

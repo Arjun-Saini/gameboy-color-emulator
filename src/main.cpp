@@ -11,14 +11,15 @@ int main(int argc, char* argv[]) {
     CPU cpu = CPU();
     PPU ppu = PPU();
     APU apu = APU();
-    Debug db = Debug();
+    Debug db = Debug(&cpu);
 
     cpu.mmu.load_ROM(argv[0], "test");
+
 
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point current_time;
 
-    while(true){
+    while(false){
         current_time = std::chrono::steady_clock::now();
 
         // TODO SDL event loop and inputs
