@@ -9,10 +9,10 @@ CPU::CPU() {
     // Initialize values
 //    program_counter = 0x100;
     stack_pointer = 0xFFFE;
-    registers.set_reg_AF(0x01B0);
-    registers.set_reg_BC(0x0013);
-    registers.set_reg_DE(0x00D8);
-    registers.set_reg_HL(0x014D);
+    registers.set_AF(0x01B0);
+    registers.set_BC(0x0013);
+    registers.set_DE(0x00D8);
+    registers.set_HL(0x014D);
     mmu.gb_memory[0xFF05] = 0x00;
     mmu.gb_memory[0xFF06] = 0x00;
     mmu.gb_memory[0xFF07] = 0x00;
@@ -46,14 +46,156 @@ CPU::CPU() {
     mmu.gb_memory[0xFFFF] = 0x00;
 }
 
+// Loads value from r2 into r1
 void CPU::LD_r8_r8(uint8_t* r1, uint8_t r2) {
     *r1 = r2;
     t_cycles += 4;
 }
 
+// Loads the next byte into r
+void CPU::LD_r8_u8(uint8_t *r) {
+    uint8_t u8 = mmu.read_byte(program_counter++);
+    *r = u8;
+    t_cycles += 8;
+}
+
+// Loads next two bytes into r2 and r1
+void CPU::LD_r16_u16(uint8_t *r1, uint8_t *r2) {
+    uint8_t u8 = mmu.read_byte(program_counter++);
+    *r2 = u8;
+    u8 = mmu.read_byte(program_counter++);
+    *r1 = u8;
+    t_cycles += 12;
+}
+
+// Loads value from r into byte pointed to by HL
+void CPU::LD_pHL_r8(uint8_t r) {
+    mmu.write_byte(registers.get_HL(), r);
+    t_cycles += 8;
+}
+
+// Loads value from next byte into byte pointed to by HL
+void CPU::LD_pHL_n8() {
+    uint8_t u8 = mmu.read_byte(program_counter++);
+    mmu.write_byte(registers.get_HL(), u8);
+    t_cycles += 8;
+}
+
+// Loads value from byte pointed to by HL into r
+void CPU::LD_r8_pHL(uint8_t *r) {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    *r = pHL;
+    t_cycles += 8;
+}
+
+// Loads value from A into byte pointed to by r
+void CPU::LD_pr16_A(uint16_t r) {
+    mmu.write_byte(r, registers.A);
+    t_cycles += 8;
+}
+
+// Loads value from A into byte pointed to by next two bytes
+void CPU::LD_pu16_A() {
+    uint16_t u16 = mmu.read_byte(program_counter++);
+    u16 |= (mmu.read_byte(program_counter++) << 8);
+    mmu.write_byte(u16, registers.A);
+    t_cycles += 16;
+}
+
+// Loads value from A into byte pointed to by 0xFF00 + next byte
+void CPU::LD_pFF00u8_A() {
+    uint8_t u8 = mmu.read_byte(program_counter++);
+    mmu.write_byte(0xFF00 | u8, registers.A);
+    t_cycles += 12;
+}
+
+// Loads value from A into byte pointed to by 0xFF00 + C
+void CPU::LD_pC_A() {
+    mmu.write_byte(0xFF00 | registers.C, registers.A);
+    t_cycles += 8;
+}
+
+// Loads value from byte pointed to by r into A
+void CPU::LD_A_pr16(uint16_t r) {
+    registers.A = mmu.read_byte(r);
+    t_cycles += 8;
+}
+
+void CPU::LD_A_pu16() {
+    uint16_t u16 = mmu.read_byte(program_counter++);
+    u16 |= (mmu.read_byte(program_counter++) << 8);
+    registers.A = mmu.read_byte(u16);
+    t_cycles += 16;
+}
+
+void CPU::LD_A_pFF00u8() {
+    uint8_t u8 = mmu.read_byte(program_counter++);
+    registers.A = mmu.read_byte(0xFF00 | u8);
+    t_cycles += 12;
+}
+
+void CPU::LD_A_pC() {
+    registers.A = mmu.read_byte(0xFF00 | registers.C);
+    t_cycles += 8;
+}
+
+void CPU::LD_pHLI_A() {
+    mmu.write_byte(registers.get_HL(), registers.A);
+    registers.set_HL(registers.get_HL() + 1);
+    t_cycles += 8;
+}
+
+void CPU::LD_pHLD_A() {
+    mmu.write_byte(registers.get_HL(), registers.A);
+    registers.set_HL(registers.get_HL() - 1);
+    t_cycles += 8;
+}
+
+void CPU::LD_A_pHLD() {
+    registers.A = mmu.read_byte(registers.get_HL());
+    registers.set_HL(registers.get_HL() - 1);
+    t_cycles += 8;
+}
+
+void CPU::LD_A_pHLI() {
+    registers.A = mmu.read_byte(registers.get_HL());
+    registers.set_HL(registers.get_HL() + 1);
+    t_cycles += 8;
+}
+
+void CPU::LD_SP_u16() {
+    uint16_t u16 = mmu.read_byte(program_counter++);
+    u16 |= (mmu.read_byte(program_counter++) << 8);
+    stack_pointer = u16;
+    t_cycles += 12;
+}
+
+void CPU::LD_pu16_SP() {
+    uint16_t u16 = mmu.read_byte(program_counter++);
+    u16 |= (mmu.read_byte(program_counter++) << 8);
+    mmu.write_byte(u16, stack_pointer & 0xFF);
+    mmu.write_byte(u16 + 1, stack_pointer >> 8);
+    t_cycles += 20;
+}
+
+void CPU::LD_HL_SPi8() {
+    int8_t i8 = mmu.read_byte(program_counter++);
+    registers.set_HL(stack_pointer + i8);
+    registers.b8_carry(stack_pointer, i8);
+    registers.b4_half_carry(stack_pointer, i8);
+    registers.set_Z(0);
+    registers.set_N(0);
+    t_cycles += 12;
+}
+
+void CPU::LD_SP_HL() {
+    stack_pointer = registers.get_HL();
+    t_cycles += 8;
+}
+
 // Returns opcode at program_counter
 uint16_t CPU::next_opcode() {
-    uint8_t opcode = mmu.gb_memory[program_counter++];
+    uint8_t opcode = mmu.read_byte(program_counter++);
     if(opcode == 0xCB){
         return (opcode << 8) | next_opcode();
     }
@@ -584,8 +726,10 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x00:
                 break;
             case 0x01:
+                LD_r16_u16(&registers.B, &registers.C);
                 break;
             case 0x02:
+                LD_pr16_A(registers.get_BC());
                 break;
             case 0x03:
                 break;
@@ -594,14 +738,17 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x05:
                 break;
             case 0x06:
+                LD_r8_u8(&registers.B);
                 break;
             case 0x07:
                 break;
             case 0x08:
+                LD_pu16_SP();
                 break;
             case 0x09:
                 break;
             case 0x0A:
+                LD_A_pr16(registers.get_BC());
                 break;
             case 0x0B:
                 break;
@@ -610,14 +757,17 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x0D:
                 break;
             case 0x0E:
+                LD_r8_u8(&registers.C);
                 break;
             case 0x0F:
                 break;
             case 0x10:
                 break;
             case 0x11:
+                LD_r16_u16(&registers.D, &registers.E);
                 break;
             case 0x12:
+                LD_pr16_A(registers.get_DE());
                 break;
             case 0x13:
                 break;
@@ -626,6 +776,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x15:
                 break;
             case 0x16:
+                LD_r8_u8(&registers.D);
                 break;
             case 0x17:
                 break;
@@ -634,6 +785,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x19:
                 break;
             case 0x1A:
+                LD_A_pr16(registers.get_DE());
                 break;
             case 0x1B:
                 break;
@@ -642,14 +794,17 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x1D:
                 break;
             case 0x1E:
+                LD_r8_u8(&registers.E);
                 break;
             case 0x1F:
                 break;
             case 0x20:
                 break;
             case 0x21:
+                LD_r16_u16(&registers.H, &registers.L);
                 break;
             case 0x22:
+                LD_pHLI_A();
                 break;
             case 0x23:
                 break;
@@ -658,6 +813,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x25:
                 break;
             case 0x26:
+                LD_r8_u8(&registers.H);
                 break;
             case 0x27:
                 break;
@@ -666,6 +822,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x29:
                 break;
             case 0x2A:
+                LD_A_pHLI();
                 break;
             case 0x2B:
                 break;
@@ -674,14 +831,17 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x2D:
                 break;
             case 0x2E:
+                LD_r8_u8(&registers.L);
                 break;
             case 0x2F:
                 break;
             case 0x30:
                 break;
             case 0x31:
+                LD_SP_u16();
                 break;
             case 0x32:
+                LD_pHLD_A();
                 break;
             case 0x33:
                 break;
@@ -690,6 +850,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x35:
                 break;
             case 0x36:
+                LD_pHL_n8();
                 break;
             case 0x37:
                 break;
@@ -698,6 +859,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x39:
                 break;
             case 0x3A:
+                LD_A_pHLD();
                 break;
             case 0x3B:
                 break;
@@ -706,185 +868,200 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x3D:
                 break;
             case 0x3E:
+                LD_r8_u8(&registers.A);
                 break;
             case 0x3F:
                 break;
             case 0x40:
-                LD_r8_r8(&registers.reg_B, registers.reg_B);
+                LD_r8_r8(&registers.B, registers.B);
                 break;
             case 0x41:
-                LD_r8_r8(&registers.reg_C, registers.reg_B);
+                LD_r8_r8(&registers.C, registers.B);
                 break;
             case 0x42:
-                LD_r8_r8(&registers.reg_D, registers.reg_B);
+                LD_r8_r8(&registers.D, registers.B);
                 break;
             case 0x43:
-                LD_r8_r8(&registers.reg_E, registers.reg_B);
+                LD_r8_r8(&registers.E, registers.B);
                 break;
             case 0x44:
-                LD_r8_r8(&registers.reg_H, registers.reg_B);
+                LD_r8_r8(&registers.H, registers.B);
                 break;
             case 0x45:
-                LD_r8_r8(&registers.reg_L, registers.reg_B);
+                LD_r8_r8(&registers.L, registers.B);
                 break;
             case 0x46:
+                LD_r8_pHL(&registers.B);
                 break;
             case 0x47:
-                LD_r8_r8(&registers.reg_B, registers.reg_A);
+                LD_r8_r8(&registers.B, registers.A);
                 break;
             case 0x48:
-                LD_r8_r8(&registers.reg_C, registers.reg_B);
+                LD_r8_r8(&registers.C, registers.B);
                 break;
             case 0x49:
-                LD_r8_r8(&registers.reg_C, registers.reg_C);
+                LD_r8_r8(&registers.C, registers.C);
                 break;
             case 0x4A:
-                LD_r8_r8(&registers.reg_C, registers.reg_D);
+                LD_r8_r8(&registers.C, registers.D);
                 break;
             case 0x4B:
-                LD_r8_r8(&registers.reg_C, registers.reg_E);
+                LD_r8_r8(&registers.C, registers.E);
                 break;
             case 0x4C:
-                LD_r8_r8(&registers.reg_C, registers.reg_H);
+                LD_r8_r8(&registers.C, registers.H);
                 break;
             case 0x4D:
-                LD_r8_r8(&registers.reg_C, registers.reg_L);
+                LD_r8_r8(&registers.C, registers.L);
                 break;
             case 0x4E:
+                LD_r8_pHL(&registers.C);
                 break;
             case 0x4F:
-                LD_r8_r8(&registers.reg_C, registers.reg_A);
+                LD_r8_r8(&registers.C, registers.A);
                 break;
             case 0x50:
-                LD_r8_r8(&registers.reg_D, registers.reg_B);
+                LD_r8_r8(&registers.D, registers.B);
                 break;
             case 0x51:
-                LD_r8_r8(&registers.reg_D, registers.reg_C);
+                LD_r8_r8(&registers.D, registers.C);
                 break;
             case 0x52:
-                LD_r8_r8(&registers.reg_D, registers.reg_D);
+                LD_r8_r8(&registers.D, registers.D);
                 break;
             case 0x53:
-                LD_r8_r8(&registers.reg_D, registers.reg_E);
+                LD_r8_r8(&registers.D, registers.E);
                 break;
             case 0x54:
-                LD_r8_r8(&registers.reg_D, registers.reg_H);
+                LD_r8_r8(&registers.D, registers.H);
                 break;
             case 0x55:
-                LD_r8_r8(&registers.reg_D, registers.reg_L);
+                LD_r8_r8(&registers.D, registers.L);
                 break;
             case 0x56:
+                LD_r8_pHL(&registers.D);
                 break;
             case 0x57:
-                LD_r8_r8(&registers.reg_D, registers.reg_A);
+                LD_r8_r8(&registers.D, registers.A);
                 break;
             case 0x58:
-                LD_r8_r8(&registers.reg_E, registers.reg_B);
+                LD_r8_r8(&registers.E, registers.B);
                 break;
             case 0x59:
-                LD_r8_r8(&registers.reg_E, registers.reg_C);
+                LD_r8_r8(&registers.E, registers.C);
                 break;
             case 0x5A:
-                LD_r8_r8(&registers.reg_E, registers.reg_D);
+                LD_r8_r8(&registers.E, registers.D);
                 break;
             case 0x5B:
-                LD_r8_r8(&registers.reg_E, registers.reg_E);
+                LD_r8_r8(&registers.E, registers.E);
                 break;
             case 0x5C:
-                LD_r8_r8(&registers.reg_E, registers.reg_H);
+                LD_r8_r8(&registers.E, registers.H);
                 break;
             case 0x5D:
-                LD_r8_r8(&registers.reg_E, registers.reg_L);
+                LD_r8_r8(&registers.E, registers.L);
                 break;
             case 0x5E:
+                LD_r8_pHL(&registers.E);
                 break;
             case 0x5F:
-                LD_r8_r8(&registers.reg_E, registers.reg_A);
+                LD_r8_r8(&registers.E, registers.A);
                 break;
             case 0x60:
-                LD_r8_r8(&registers.reg_H, registers.reg_B);
+                LD_r8_r8(&registers.H, registers.B);
                 break;
             case 0x61:
-                LD_r8_r8(&registers.reg_H, registers.reg_C);
+                LD_r8_r8(&registers.H, registers.C);
                 break;
             case 0x62:
-                LD_r8_r8(&registers.reg_H, registers.reg_D);
+                LD_r8_r8(&registers.H, registers.D);
                 break;
             case 0x63:
-                LD_r8_r8(&registers.reg_H, registers.reg_E);
+                LD_r8_r8(&registers.H, registers.E);
                 break;
             case 0x64:
-                LD_r8_r8(&registers.reg_H, registers.reg_H);
+                LD_r8_r8(&registers.H, registers.H);
                 break;
             case 0x65:
-                LD_r8_r8(&registers.reg_H, registers.reg_L);
+                LD_r8_r8(&registers.H, registers.L);
                 break;
             case 0x66:
+                LD_r8_pHL(&registers.H);
                 break;
             case 0x67:
-                LD_r8_r8(&registers.reg_H, registers.reg_A);
+                LD_r8_r8(&registers.H, registers.A);
                 break;
             case 0x68:
-                LD_r8_r8(&registers.reg_L, registers.reg_B);
+                LD_r8_r8(&registers.L, registers.B);
                 break;
             case 0x69:
-                LD_r8_r8(&registers.reg_L, registers.reg_C);
+                LD_r8_r8(&registers.L, registers.C);
                 break;
             case 0x6A:
-                LD_r8_r8(&registers.reg_L, registers.reg_D);
+                LD_r8_r8(&registers.L, registers.D);
                 break;
             case 0x6B:
-                LD_r8_r8(&registers.reg_L, registers.reg_E);
+                LD_r8_r8(&registers.L, registers.E);
                 break;
             case 0x6C:
-                LD_r8_r8(&registers.reg_L, registers.reg_H);
+                LD_r8_r8(&registers.L, registers.H);
                 break;
             case 0x6D:
-                LD_r8_r8(&registers.reg_L, registers.reg_L);
+                LD_r8_r8(&registers.L, registers.L);
                 break;
             case 0x6E:
+                LD_r8_pHL(&registers.L);
                 break;
             case 0x6F:
-                LD_r8_r8(&registers.reg_L, registers.reg_A);
+                LD_r8_r8(&registers.L, registers.A);
                 break;
             case 0x70:
+                LD_pHL_r8(registers.B);
                 break;
             case 0x71:
+                LD_pHL_r8(registers.C);
                 break;
             case 0x72:
+                LD_pHL_r8(registers.D);
                 break;
             case 0x73:
+                LD_pHL_r8(registers.E);
                 break;
             case 0x74:
+                LD_pHL_r8(registers.H);
                 break;
             case 0x75:
+                LD_pHL_r8(registers.L);
                 break;
             case 0x76:
                 break;
             case 0x77:
+                LD_pHL_r8(registers.A);
                 break;
             case 0x78:
-                LD_r8_r8(&registers.reg_A, registers.reg_B);
+                LD_r8_r8(&registers.A, registers.B);
                 break;
             case 0x79:
-                LD_r8_r8(&registers.reg_A, registers.reg_C);
+                LD_r8_r8(&registers.A, registers.C);
                 break;
             case 0x7A:
-                LD_r8_r8(&registers.reg_A, registers.reg_D);
+                LD_r8_r8(&registers.A, registers.D);
                 break;
             case 0x7B:
-                LD_r8_r8(&registers.reg_A, registers.reg_E);
+                LD_r8_r8(&registers.A, registers.E);
                 break;
             case 0x7C:
-                LD_r8_r8(&registers.reg_A, registers.reg_H);
+                LD_r8_r8(&registers.A, registers.H);
                 break;
             case 0x7D:
-                LD_r8_r8(&registers.reg_A, registers.reg_L);
+                LD_r8_r8(&registers.A, registers.L);
                 break;
             case 0x7E:
+                LD_r8_pHL(&registers.A);
                 break;
             case 0x7F:
-                LD_r8_r8(&registers.reg_A, registers.reg_A);
+                LD_r8_r8(&registers.A, registers.A);
                 break;
             case 0x80:
                 break;
@@ -1082,10 +1259,12 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0xDF:
                 break;
             case 0xE0:
+                LD_pFF00u8_A();
                 break;
             case 0xE1:
                 break;
             case 0xE2:
+                LD_pC_A();
                 break;
             case 0xE3:
                 // UNUSED
@@ -1104,6 +1283,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0xE9:
                 break;
             case 0xEA:
+                LD_pu16_A();
                 break;
             case 0xEB:
                 // UNUSED
@@ -1119,10 +1299,12 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0xEF:
                 break;
             case 0xF0:
+                LD_A_pFF00u8();
                 break;
             case 0xF1:
                 break;
             case 0xF2:
+                LD_A_pC();
                 break;
             case 0xF3:
                 break;
@@ -1136,10 +1318,13 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0xF7:
                 break;
             case 0xF8:
+                LD_HL_SPi8();
                 break;
             case 0xF9:
+                LD_SP_HL();
                 break;
             case 0xFA:
+                LD_A_pu16();
                 break;
             case 0xFB:
                 break;

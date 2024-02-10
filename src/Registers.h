@@ -7,34 +7,37 @@ class Registers {
 public:
     Registers();
 
-    uint8_t reg_A;
-    uint8_t reg_F;
-    uint8_t reg_B;
-    uint8_t reg_C;
-    uint8_t reg_D;
-    uint8_t reg_E;
-    uint8_t reg_H;
-    uint8_t reg_L;
+    uint8_t A;
+    uint8_t F;
+    uint8_t B;
+    uint8_t C;
+    uint8_t D;
+    uint8_t E;
+    uint8_t H;
+    uint8_t L;
 
-    uint16_t get_reg_AF();
-    uint16_t get_reg_BC();
-    uint16_t get_reg_DE();
-    uint16_t get_reg_HL();
+    uint16_t get_AF();
+    uint16_t get_BC();
+    uint16_t get_DE();
+    uint16_t get_HL();
 
-    void set_reg_AF(uint16_t val);
-    void set_reg_BC(uint16_t val);
-    void set_reg_DE(uint16_t val);
-    void set_reg_HL(uint16_t val);
+    void set_AF(uint16_t val);
+    void set_BC(uint16_t val);
+    void set_DE(uint16_t val);
+    void set_HL(uint16_t val);
 
-    uint8_t get_flag_Z();
-    uint8_t get_flag_N();
-    uint8_t get_flag_H();
-    uint8_t get_flag_C();
+    uint8_t get_Z();
+    uint8_t get_N();
+    uint8_t get_H();
+    uint8_t get_C();
 
-    void set_flag_Z(uint8_t val);
-    void set_flag_N(uint8_t val);
-    void set_flag_H(uint8_t val);
-    void set_flag_C(uint8_t val);
+    void set_Z(uint8_t val);
+    void set_N(uint8_t val);
+    void set_H(uint8_t val);
+    void set_C(uint8_t val);
+
+    void b8_carry(int v1, int v2);
+    void b4_half_carry(int v1, int v2);
 };
 
 

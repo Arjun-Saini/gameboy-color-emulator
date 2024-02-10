@@ -15,6 +15,10 @@ int main(int argc, char* argv[]) {
 
     cpu.mmu.load_ROM(argv[0], "test");
 
+    db.print_registers();
+    cpu.stack_pointer = 0xF;
+    cpu.LD_HL_SPi8();
+    db.print_registers();
 
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point current_time;
@@ -36,7 +40,7 @@ int main(int argc, char* argv[]) {
                 total_cycles += cpu.t_cycles;
 
                 // Advances PPU and APU to catch up with CPU
-                for(int i = 0; i < cpu.t_cycles; i++){
+                for(; cpu.t_cycles > 0; cpu.t_cycles--){
                     ppu.tick();
                     apu.tick();
                 }

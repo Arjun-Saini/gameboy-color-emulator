@@ -33,18 +33,18 @@ void Debug::print_gb_mem(int mode, int width) {
 
 void Debug::print_registers() {
     std::cout << "Registers:" << std::endl;
-    std::cout << "A: " << std::hex << int(cpu->registers.reg_A) << " -- ";
-    std::cout << "F: " << std::hex << int(cpu->registers.reg_F) << std::endl;
-    std::cout << "B: " << std::hex << int(cpu->registers.reg_B) << " -- ";
-    std::cout << "C: " << std::hex << int(cpu->registers.reg_C) << std::endl;
-    std::cout << "D: " << std::hex << int(cpu->registers.reg_D) << " -- ";
-    std::cout << "E: " << std::hex << int(cpu->registers.reg_E) << std::endl;
-    std::cout << "H: " << std::hex << int(cpu->registers.reg_H) << " -- ";
-    std::cout << "L: " << std::hex << int(cpu->registers.reg_L) << std::endl;
+    std::cout << "A: " << std::hex << int(cpu->registers.A) << " -- ";
+    std::cout << "F: " << std::hex << int(cpu->registers.F) << std::endl;
+    std::cout << "B: " << std::hex << int(cpu->registers.B) << " -- ";
+    std::cout << "C: " << std::hex << int(cpu->registers.C) << std::endl;
+    std::cout << "D: " << std::hex << int(cpu->registers.D) << " -- ";
+    std::cout << "E: " << std::hex << int(cpu->registers.E) << std::endl;
+    std::cout << "H: " << std::hex << int(cpu->registers.H) << " -- ";
+    std::cout << "L: " << std::hex << int(cpu->registers.L) << std::endl;
 
     std::cout << "Flags:" << std::endl;
-    std::cout << "Z: " << int(cpu->registers.get_flag_Z()) << " -- ";
-    std::cout << "N: " << int(cpu->registers.get_flag_N()) << std::endl;
-    std::cout << "H: " << int(cpu->registers.get_flag_H()) << " -- ";
-    std::cout << "C: " << int(cpu->registers.get_flag_C()) << std::endl;
+    std::cout << "Z: " << int(cpu->registers.get_Z()) << " -- ";
+    std::cout << "N: " << int(cpu->registers.get_N()) << std::endl;
+    std::cout << "H: " << int(cpu->registers.get_H()) << " -- ";
+    std::cout << "C: " << int(cpu->registers.get_C()) << std::endl;
 }
