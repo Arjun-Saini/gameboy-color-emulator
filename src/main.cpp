@@ -13,6 +13,7 @@ int main(int argc, char* argv[]) {
     APU apu = APU();
     Debug db = Debug(&cpu);
 
+    bool next_interrupt = false;
     cpu.mmu.load_ROM(argv[0], "test");
 
     db.print_registers();
@@ -23,7 +24,7 @@ int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point current_time;
 
-    while(false){
+    while(true){
         current_time = std::chrono::steady_clock::now();
 
         // TODO SDL event loop and inputs
@@ -43,6 +44,15 @@ int main(int argc, char* argv[]) {
                 for(; cpu.t_cycles > 0; cpu.t_cycles--){
                     ppu.tick();
                     apu.tick();
+                }
+
+                if(next_interrupt){
+                    cpu.IME = true;
+                    next_interrupt = false;
+                }
+                if(cpu.enable_interrupt){
+                    next_interrupt = true;
+                    cpu.enable_interrupt = false;
                 }
             }
         }

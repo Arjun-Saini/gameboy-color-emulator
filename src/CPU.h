@@ -11,9 +11,10 @@ public:
 
     uint16_t program_counter;
     uint16_t stack_pointer;
-
     Registers registers;
     MMU mmu;
+    bool enable_interrupt;
+    bool IME;
 
     uint8_t t_cycles;
     uint32_t cycles_per_frame;
@@ -85,22 +86,22 @@ public:
 
     // Jumps and subroutines
     void CALL_u16();
-    void CALL_cc_u16();
+    void CALL_cc_u16(bool cc);
     void JP_HL();
     void JP_u16();
-    void JP_cc_u16();
-    void JR_u16();
-    void JR_cc_u16();
-    void RET_cc();
+    void JP_cc_u16(bool cc);
+    void JR_i8();
+    void JR_cc_i8(bool cc);
     void RET();
+    void RET_cc(bool cc);
     void RETI();
-    void RST_vec();
+    void RST_vec(uint8_t v);
 
     // Stack operations
     void POP_AF();
-    void POP_r16();
+    void POP_r16(uint8_t* r1, uint8_t* r2);
     void PUSH_AF();
-    void PUSH_r16();
+    void PUSH_r16(uint16_t r);
 
     // Miscellaneous instructions
     void CCF();

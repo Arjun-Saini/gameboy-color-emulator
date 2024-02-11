@@ -5,6 +5,7 @@ CPU::CPU() {
     registers = Registers();
     t_cycles = 0;
     cycles_per_frame = 69905;
+    IME = false;
 
     // Initialize values
 //    program_counter = 0x100;
@@ -492,6 +493,190 @@ void CPU::XOR_A_u8() {
     registers.set_H(0);
     registers.set_C(0);
     t_cycles += 8;
+}
+
+void CPU::JP_HL() {
+    program_counter = registers.get_HL();
+    t_cycles += 4;
+}
+
+void CPU::JP_u16() {
+    uint16_t u16 = mmu.read_byte(program_counter++);
+    u16 |= (mmu.read_byte(program_counter++) << 8);
+    program_counter = u16;
+    t_cycles += 16;
+}
+
+void CPU::JP_cc_u16(bool cc) {
+    if(cc){
+        JP_u16();
+    }else{
+        program_counter += 2;
+        t_cycles += 12;
+    }
+}
+
+void CPU::CALL_u16() {
+    uint16_t next_adr = program_counter + 2;
+    mmu.write_byte(--stack_pointer, next_adr & 0xFF00);
+    mmu.write_byte(--stack_pointer, next_adr & 0xFF);
+    t_cycles += 8;
+    JP_u16();
+}
+
+void CPU::CALL_cc_u16(bool cc) {
+    if(cc){
+        CALL_u16();
+    }else{
+        program_counter += 2;
+        t_cycles += 12;
+    }
+}
+
+void CPU::JR_i8() {
+    int8_t i8 = mmu.read_byte(program_counter);
+    program_counter += i8;
+    t_cycles += 12;
+}
+
+void CPU::JR_cc_i8(bool cc) {
+    if(cc){
+        JR_i8();
+    }else{
+        program_counter++;
+        t_cycles += 8;
+    }
+}
+
+void CPU::RET() {
+    uint16_t addr = mmu.read_byte(stack_pointer++);
+    addr |= (mmu.read_byte(stack_pointer++) << 2);
+    program_counter = addr;
+    t_cycles += 16;
+}
+
+void CPU::RET_cc(bool cc) {
+    if(cc){
+        t_cycles += 4;
+        RET();
+    }else{
+        t_cycles += 8;
+    }
+}
+
+void CPU::RETI() {
+    IME = true;
+    RET();
+}
+
+void CPU::RST_vec(uint8_t v) {
+    uint16_t next_adr = program_counter + 2;
+    mmu.write_byte(--stack_pointer, next_adr & 0xFF00);
+    mmu.write_byte(--stack_pointer, next_adr & 0xFF);
+    program_counter = v;
+    t_cycles += 16;
+}
+
+void CPU::POP_AF() {
+    uint8_t r = mmu.read_byte(stack_pointer++);
+    registers.set_Z(r >> 7);
+    registers.set_N((r >> 6) & 1);
+    registers.set_H((r >> 5) & 1);
+    registers.set_C((r >> 4) & 1);
+    registers.A = mmu.read_byte(stack_pointer++);
+    t_cycles += 12;
+}
+
+void CPU::POP_r16(uint8_t* r1, uint8_t* r2) {
+    *r2 = mmu.read_byte(stack_pointer++);
+    *r1 = mmu.read_byte(stack_pointer++);
+    t_cycles += 12;
+}
+
+void CPU::PUSH_AF() {
+    mmu.write_byte(--stack_pointer, registers.A);
+    uint8_t f = registers.get_Z() << 7 | registers.get_N() << 6 | registers.get_H() << 5 | registers.get_C() << 4;
+    mmu.write_byte(--stack_pointer, f);
+    t_cycles += 16;
+}
+
+void CPU::PUSH_r16(uint16_t r) {
+    mmu.write_byte(--stack_pointer, r & 0xFF00);
+    mmu.write_byte(--stack_pointer, r & 0xFF);
+    t_cycles += 16;
+}
+
+void CPU::CCF() {
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(~registers.get_C());
+    t_cycles += 4;
+}
+
+void CPU::CPL() {
+    registers.A = ~registers.A;
+    registers.set_N(1);
+    registers.set_H(1);
+    t_cycles += 4;
+}
+
+void CPU::DAA() {
+    uint8_t adjust = 0;
+
+    // If addition and ones digit > 9, or half carry, adjust by 0x06
+    if((!registers.get_N() && (registers.A & 0xF) > 0x09) || registers.get_H()){
+        adjust += 0x06;
+    }
+
+    // If addition and tens digits > 9, or carry, adjust by 0x60
+    if((!registers.get_N() && (registers.A & 0xFF) > 0x99) || registers.get_C()){
+        adjust += 0x60;
+        registers.set_C(1);
+    }else{
+        registers.set_C(0);
+    }
+
+    if(registers.get_N()){
+        registers.A -= adjust;
+    }else{
+        registers.A += adjust;
+    }
+
+    registers.set_Z(registers.A == 0);
+    registers.set_H(0);
+    t_cycles += 4;
+}
+
+void CPU::DI() {
+    IME = false;
+    t_cycles += 4;
+}
+
+void CPU::EI() {
+    enable_interrupt = true;
+    t_cycles += 4;
+}
+
+
+// TODO implement interrupt behavior first
+void CPU::HALT() {
+
+}
+
+void CPU::NOP() {
+    t_cycles += 4;
+}
+
+void CPU::SCF() {
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(1);
+    t_cycles += 4;
+}
+
+// TODO
+void CPU::STOP() {
+
 }
 
 // Returns opcode at program_counter
@@ -1026,6 +1211,7 @@ void CPU::decode_opcode(uint16_t opcode) {
         // Non CB-prefixed opcodes
         switch (opcode & 0xFF) {
             case 0x00:
+                NOP();
                 break;
             case 0x01:
                 LD_r16_u16(&registers.B, &registers.C);
@@ -1071,6 +1257,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x0F:
                 break;
             case 0x10:
+                STOP();
                 break;
             case 0x11:
                 LD_r16_u16(&registers.D, &registers.E);
@@ -1093,6 +1280,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x17:
                 break;
             case 0x18:
+                JR_i8();
                 break;
             case 0x19:
                 ADD_HL_r16(registers.get_DE());
@@ -1115,6 +1303,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x1F:
                 break;
             case 0x20:
+                JR_cc_i8(!registers.get_Z());
                 break;
             case 0x21:
                 LD_r16_u16(&registers.H, &registers.L);
@@ -1135,8 +1324,10 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_r8_u8(&registers.H);
                 break;
             case 0x27:
+                DAA();
                 break;
             case 0x28:
+                JR_cc_i8(registers.get_Z());
                 break;
             case 0x29:
                 ADD_HL_r16(registers.get_HL());
@@ -1157,8 +1348,10 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_r8_u8(&registers.L);
                 break;
             case 0x2F:
+                CPL();
                 break;
             case 0x30:
+                JR_cc_i8(!registers.get_C());
                 break;
             case 0x31:
                 LD_SP_u16();
@@ -1178,8 +1371,10 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_pHL_n8();
                 break;
             case 0x37:
+                SCF();
                 break;
             case 0x38:
+                JR_cc_i8(registers.get_C());
                 break;
             case 0x39:
                 ADD_HL_r16(stack_pointer);
@@ -1200,6 +1395,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_r8_u8(&registers.A);
                 break;
             case 0x3F:
+                CCF();
                 break;
             case 0x40:
                 LD_r8_r8(&registers.B, registers.B);
@@ -1364,6 +1560,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_pHL_r8(registers.L);
                 break;
             case 0x76:
+                HALT();
                 break;
             case 0x77:
                 LD_pHL_r8(registers.A);
@@ -1585,67 +1782,90 @@ void CPU::decode_opcode(uint16_t opcode) {
                 CP_A_r8(registers.A);
                 break;
             case 0xC0:
+                RET_cc(!registers.get_Z());
                 break;
             case 0xC1:
+                POP_r16(&registers.B, &registers.C);
                 break;
             case 0xC2:
+                JP_cc_u16(!registers.get_Z());
                 break;
             case 0xC3:
+                JP_u16();
                 break;
             case 0xC4:
+                CALL_cc_u16(!registers.get_Z());
                 break;
             case 0xC5:
+                PUSH_r16(registers.get_BC());
                 break;
             case 0xC6:
                 ADD_A_u8();
                 break;
             case 0xC7:
+                RST_vec(0x00);
                 break;
             case 0xC8:
+                RET_cc(registers.get_Z());
                 break;
             case 0xC9:
+                RET();
                 break;
             case 0xCA:
+                JP_cc_u16(registers.get_Z());
                 break;
             case 0xCB:
                 break;
             case 0xCC:
+                CALL_cc_u16(registers.get_Z());
                 break;
             case 0xCD:
+                CALL_u16();
                 break;
             case 0xCE:
                 ADC_A_u8();
                 break;
             case 0xCF:
+                RST_vec(0x08);
                 break;
             case 0xD0:
+                RET_cc(!registers.get_C());
                 break;
             case 0xD1:
+                POP_r16(&registers.D, &registers.E);
                 break;
             case 0xD2:
+                JP_cc_u16(!registers.get_C());
                 break;
             case 0xD3:
                 // UNUSED
                 break;
             case 0xD4:
+                CALL_cc_u16(!registers.get_C());
                 break;
             case 0xD5:
+                PUSH_r16(registers.get_DE());
                 break;
             case 0xD6:
                 SUB_A_u8();
                 break;
             case 0xD7:
+                RST_vec(0x10);
                 break;
             case 0xD8:
+                RET_cc(registers.get_C());
                 break;
             case 0xD9:
+                RETI();
                 break;
             case 0xDA:
+                JP_cc_u16(registers.get_C());
                 break;
             case 0xDB:
                 // UNUSED
                 break;
             case 0xDC:
+                CALL_cc_u16(registers.get_C());
                 break;
             case 0xDD:
                 // UNUSED
@@ -1654,11 +1874,13 @@ void CPU::decode_opcode(uint16_t opcode) {
                 SBC_A_u8();
                 break;
             case 0xDF:
+                RST_vec(0x18);
                 break;
             case 0xE0:
                 LD_pFF00u8_A();
                 break;
             case 0xE1:
+                POP_r16(&registers.H, &registers.L);
                 break;
             case 0xE2:
                 LD_pC_A();
@@ -1670,16 +1892,19 @@ void CPU::decode_opcode(uint16_t opcode) {
                 // UNUSED
                 break;
             case 0xE5:
+                PUSH_r16(registers.get_HL());
                 break;
             case 0xE6:
                 AND_A_u8();
                 break;
             case 0xE7:
+                RST_vec(0x20);
                 break;
             case 0xE8:
                 ADD_SP_i8();
                 break;
             case 0xE9:
+                JP_HL();
                 break;
             case 0xEA:
                 LD_pu16_A();
@@ -1697,26 +1922,31 @@ void CPU::decode_opcode(uint16_t opcode) {
                 XOR_A_u8();
                 break;
             case 0xEF:
+                RST_vec(0x28);
                 break;
             case 0xF0:
                 LD_A_pFF00u8();
                 break;
             case 0xF1:
+                POP_AF();
                 break;
             case 0xF2:
                 LD_A_pC();
                 break;
             case 0xF3:
+                DI();
                 break;
             case 0xF4:
                 // UNUSED
                 break;
             case 0xF5:
+                PUSH_AF();
                 break;
             case 0xF6:
                 OR_A_u8();
                 break;
             case 0xF7:
+                RST_vec(0x30);
                 break;
             case 0xF8:
                 LD_HL_SPi8();
@@ -1728,6 +1958,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_A_pu16();
                 break;
             case 0xFB:
+                EI();
                 break;
             case 0xFC:
                 // UNUSED
@@ -1739,6 +1970,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 CP_A_u8();
                 break;
             case 0xFF:
+                RST_vec(0x38);
                 break;
         }
     }
