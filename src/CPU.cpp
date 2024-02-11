@@ -193,6 +193,307 @@ void CPU::LD_SP_HL() {
     t_cycles += 8;
 }
 
+void CPU::ADC_A_r8(uint8_t r) {
+    registers.b8_carry(registers.A, r, registers.get_C());
+    registers.b4_half_carry(registers.A, r, registers.get_C());
+    registers.set_N(0);
+    registers.A += r + registers.get_C();
+    registers.set_Z(registers.A == 0);
+    t_cycles += 4;
+}
+
+void CPU::ADC_A_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    registers.b8_carry(registers.A, pHL, registers.get_C());
+    registers.b4_half_carry(registers.A, pHL, registers.get_C());
+    registers.set_N(0);
+    registers.A += pHL + registers.get_C();
+    registers.set_Z(registers.A == 0);
+    t_cycles += 8;
+}
+
+void CPU::ADC_A_u8() {
+    uint8_t u8 = mmu.read_byte(program_counter++);
+    registers.b8_carry(registers.A, u8, registers.get_C());
+    registers.b4_half_carry(registers.A, u8, registers.get_C());
+    registers.set_N(0);
+    registers.A += u8 + registers.get_C();
+    registers.set_Z(registers.A == 0);
+    t_cycles += 8;
+}
+
+void CPU::ADD_A_r8(uint8_t r) {
+    registers.b8_carry(registers.A, r);
+    registers.b4_half_carry(registers.A, r);
+    registers.set_N(0);
+    registers.A += + r;
+    registers.set_Z(registers.A == 0);
+    t_cycles += 4;
+}
+
+void CPU::ADD_A_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    registers.b8_carry(registers.A, pHL);
+    registers.b4_half_carry(registers.A, pHL);
+    registers.set_N(0);
+    registers.A += pHL;
+    registers.set_Z(registers.A == 0);
+    t_cycles += 8;
+}
+
+void CPU::ADD_A_u8() {
+    uint8_t u8 = mmu.read_byte(program_counter++);
+    registers.b8_carry(registers.A, u8);
+    registers.b4_half_carry(registers.A, u8);
+    registers.set_N(0);
+    registers.A += u8;
+    registers.set_Z(registers.A == 0);
+    t_cycles += 8;
+}
+
+void CPU::ADD_HL_r16(uint16_t r) {
+    registers.b16_carry(registers.get_HL(), r);
+    registers.b12_half_carry(registers.get_HL(), r);
+    registers.set_N(0);
+    registers.set_HL(registers.get_HL() + r);
+    t_cycles += 8;
+}
+
+void CPU::ADD_SP_i8() {
+    int8_t i8 = mmu.read_byte(program_counter++);
+    registers.b8_carry(stack_pointer, i8);
+    registers.b4_half_carry(stack_pointer, i8);
+    registers.set_Z(0);
+    registers.set_N(0);
+    stack_pointer += i8;
+    t_cycles += 16;
+}
+
+void CPU::AND_A_r8(uint8_t r) {
+    registers.A &= r;
+    registers.set_Z(registers.A == 0);
+    registers.set_N(0);
+    registers.set_H(1);
+    registers.set_C(0);
+    t_cycles += 4;
+}
+
+void CPU::AND_A_pHL() {
+    registers.A &= mmu.read_byte(registers.get_HL());
+    registers.set_Z(registers.A == 0);
+    registers.set_N(0);
+    registers.set_H(1);
+    registers.set_C(0);
+    t_cycles += 8;
+}
+
+void CPU::AND_A_u8() {
+    registers.A &= mmu.read_byte(program_counter++);
+    registers.set_Z(registers.A == 0);
+    registers.set_N(0);
+    registers.set_H(1);
+    registers.set_C(0);
+    t_cycles += 8;
+}
+
+void CPU::CP_A_r8(uint8_t r) {
+    registers.set_N(1);
+    registers.b8_carry(registers.A, -r);
+    registers.b4_half_carry(registers.A, -r);
+    registers.set_Z(registers.A - r == 0);
+    t_cycles += 4;
+}
+
+void CPU::CP_A_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    registers.set_N(1);
+    registers.b8_carry(registers.A, -pHL);
+    registers.b4_half_carry(registers.A, -pHL);
+    registers.set_Z(registers.A - pHL == 0);
+    t_cycles += 8;
+}
+
+void CPU::CP_A_u8() {
+    uint8_t u8 = mmu.read_byte(program_counter++);
+    registers.set_N(1);
+    registers.b8_carry(registers.A, -u8);
+    registers.b4_half_carry(registers.A, -u8);
+    registers.set_Z(registers.A - u8 == 0);
+    t_cycles += 8;
+}
+
+void CPU::DEC_r8(uint8_t* r) {
+    registers.b4_half_carry(*r, *r - 1);
+    (*r)--;
+    registers.set_Z(*r == 0);
+    registers.set_N(1);
+    t_cycles += 4;
+}
+
+void CPU::DEC_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    registers.b4_half_carry(pHL, pHL - 1);
+    registers.set_HL(--pHL);
+    registers.set_Z(pHL == 0);
+    registers.set_N(1);
+    t_cycles += 12;
+}
+
+void CPU::DEC_SP() {
+    stack_pointer--;
+    t_cycles += 8;
+}
+
+void CPU::DEC_r16(uint8_t* r1, uint8_t* r2) {
+    uint16_t r16 = (*r1 << 8) | *r2;
+    r16--;
+    *r1 = r16 & 0xFF00;
+    *r2 = r16 & 0xFF;
+    t_cycles += 8;
+}
+
+void CPU::INC_r8(uint8_t* r) {
+    registers.b4_half_carry(*r, *r + 1);
+    (*r)++;
+    registers.set_Z(*r == 0);
+    registers.set_N(0);
+    t_cycles += 4;
+}
+
+void CPU::INC_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    registers.b4_half_carry(pHL, pHL + 1);
+    registers.set_HL(++pHL);
+    registers.set_Z(pHL == 0);
+    registers.set_N(0);
+    t_cycles += 12;
+}
+
+void CPU::INC_SP() {
+    stack_pointer++;
+    t_cycles += 8;
+}
+
+void CPU::INC_r16(uint8_t* r1, uint8_t* r2) {
+    uint16_t r16 = (*r1 << 8) | *r2;
+    r16++;
+    *r1 = r16 & 0xFF00;
+    *r2 = r16 & 0xFF;
+    t_cycles += 8;
+}
+
+void CPU::OR_A_r8(uint8_t r) {
+    registers.A |= r;
+    registers.set_Z(registers.A == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(0);
+    t_cycles += 4;
+}
+
+void CPU::OR_A_pHL() {
+    registers.A |= mmu.read_byte(registers.get_HL());
+    registers.set_Z(registers.A == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(0);
+    t_cycles += 8;
+}
+
+void CPU::OR_A_u8() {
+    registers.A |= mmu.read_byte(program_counter++);
+    registers.set_Z(registers.A == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(0);
+    t_cycles += 8;
+}
+
+void CPU::SBC_A_r8(uint8_t r) {
+    registers.b8_carry(registers.A, -r, -registers.get_C());
+    registers.b4_half_carry(registers.A, -r, -registers.get_C());
+    registers.A -= r + registers.get_C();
+    registers.set_Z(registers.A == 0);
+    registers.set_N(1);
+    t_cycles += 4;
+}
+
+void CPU::SBC_A_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    registers.b8_carry(registers.A, -pHL, -registers.get_C());
+    registers.b4_half_carry(registers.A, -pHL, -registers.get_C());
+    registers.A -= pHL + registers.get_C();
+    registers.set_Z(registers.A == 0);
+    registers.set_N(1);
+    t_cycles += 8;
+}
+
+void CPU::SBC_A_u8() {
+    uint8_t u8 = mmu.read_byte(program_counter++);
+    registers.b8_carry(registers.A, -u8, -registers.get_C());
+    registers.b4_half_carry(registers.A, -u8, -registers.get_C());
+    registers.A -= u8 + registers.get_C();
+    registers.set_Z(registers.A == 0);
+    registers.set_N(1);
+    t_cycles += 8;
+}
+
+void CPU::SUB_A_r8(uint8_t r) {
+    registers.b8_carry(registers.A, -r);
+    registers.b4_half_carry(registers.A, -r);
+    registers.A -= r;
+    registers.set_Z(registers.A == 0);
+    registers.set_N(1);
+    t_cycles += 4;
+}
+
+void CPU::SUB_A_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    registers.b8_carry(registers.A, -pHL);
+    registers.b4_half_carry(registers.A, -pHL);
+    registers.A -= pHL;
+    registers.set_Z(registers.A == 0);
+    registers.set_N(1);
+    t_cycles += 8;
+}
+
+void CPU::SUB_A_u8() {
+    uint8_t u8 = mmu.read_byte(program_counter++);
+    registers.b8_carry(registers.A, -u8);
+    registers.b4_half_carry(registers.A, -u8);
+    registers.A -= u8;
+    registers.set_Z(registers.A == 0);
+    registers.set_N(1);
+    t_cycles += 8;
+}
+
+void CPU::XOR_A_r8(uint8_t r) {
+    registers.A ^= r;
+    registers.set_Z(registers.A == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(0);
+    t_cycles += 4;
+}
+
+void CPU::XOR_A_pHL() {
+    registers.A ^= mmu.read_byte(registers.get_HL());
+    registers.set_Z(registers.A == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(0);
+    t_cycles += 8;
+}
+
+void CPU::XOR_A_u8() {
+    registers.A ^= mmu.read_byte(program_counter++);
+    registers.set_Z(registers.A == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(0);
+    t_cycles += 8;
+}
+
 // Returns opcode at program_counter
 uint16_t CPU::next_opcode() {
     uint8_t opcode = mmu.read_byte(program_counter++);
@@ -310,6 +611,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x32:
                 break;
             case 0x33:
+                INC_SP();
                 break;
             case 0x34:
                 break;
@@ -732,10 +1034,13 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_pr16_A(registers.get_BC());
                 break;
             case 0x03:
+                INC_r16(&registers.B, &registers.C);
                 break;
             case 0x04:
+                INC_r8(&registers.B);
                 break;
             case 0x05:
+                DEC_r8(&registers.B);
                 break;
             case 0x06:
                 LD_r8_u8(&registers.B);
@@ -746,15 +1051,19 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_pu16_SP();
                 break;
             case 0x09:
+                ADD_HL_r16(registers.get_BC());
                 break;
             case 0x0A:
                 LD_A_pr16(registers.get_BC());
                 break;
             case 0x0B:
+                DEC_r16(&registers.B, &registers.C);
                 break;
             case 0x0C:
+                INC_r8(&registers.C);
                 break;
             case 0x0D:
+                DEC_r8(&registers.C);
                 break;
             case 0x0E:
                 LD_r8_u8(&registers.C);
@@ -770,10 +1079,13 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_pr16_A(registers.get_DE());
                 break;
             case 0x13:
+                INC_r16(&registers.D, &registers.E);
                 break;
             case 0x14:
+                INC_r8(&registers.D);
                 break;
             case 0x15:
+                DEC_r8(&registers.D);
                 break;
             case 0x16:
                 LD_r8_u8(&registers.D);
@@ -783,15 +1095,19 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x18:
                 break;
             case 0x19:
+                ADD_HL_r16(registers.get_DE());
                 break;
             case 0x1A:
                 LD_A_pr16(registers.get_DE());
                 break;
             case 0x1B:
+                DEC_r16(&registers.D, &registers.E);
                 break;
             case 0x1C:
+                INC_r8(&registers.E);
                 break;
             case 0x1D:
+                DEC_r8(&registers.E);
                 break;
             case 0x1E:
                 LD_r8_u8(&registers.E);
@@ -807,10 +1123,13 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_pHLI_A();
                 break;
             case 0x23:
+                INC_r16(&registers.H, &registers.L);
                 break;
             case 0x24:
+                INC_r8(&registers.H);
                 break;
             case 0x25:
+                DEC_r8(&registers.H);
                 break;
             case 0x26:
                 LD_r8_u8(&registers.H);
@@ -820,15 +1139,19 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x28:
                 break;
             case 0x29:
+                ADD_HL_r16(registers.get_HL());
                 break;
             case 0x2A:
                 LD_A_pHLI();
                 break;
             case 0x2B:
+                DEC_r16(&registers.H, &registers.L);
                 break;
             case 0x2C:
+                INC_r8(&registers.L);
                 break;
             case 0x2D:
+                DEC_r8(&registers.L);
                 break;
             case 0x2E:
                 LD_r8_u8(&registers.L);
@@ -846,8 +1169,10 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x33:
                 break;
             case 0x34:
+                INC_pHL();
                 break;
             case 0x35:
+                DEC_pHL();
                 break;
             case 0x36:
                 LD_pHL_n8();
@@ -857,15 +1182,19 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0x38:
                 break;
             case 0x39:
+                ADD_HL_r16(stack_pointer);
                 break;
             case 0x3A:
                 LD_A_pHLD();
                 break;
             case 0x3B:
+                DEC_SP();
                 break;
             case 0x3C:
+                INC_r8(&registers.A);
                 break;
             case 0x3D:
+                DEC_r8(&registers.A);
                 break;
             case 0x3E:
                 LD_r8_u8(&registers.A);
@@ -1064,132 +1393,196 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_r8_r8(&registers.A, registers.A);
                 break;
             case 0x80:
+                ADD_A_r8(registers.B);
                 break;
             case 0x81:
+                ADD_A_r8(registers.C);
                 break;
             case 0x82:
+                ADD_A_r8(registers.D);
                 break;
             case 0x83:
+                ADD_A_r8(registers.E);
                 break;
             case 0x84:
+                ADD_A_r8(registers.H);
                 break;
             case 0x85:
+                ADD_A_r8(registers.L);
                 break;
             case 0x86:
+                ADD_A_pHL();
                 break;
             case 0x87:
+                ADD_A_r8(registers.A);
                 break;
             case 0x88:
+                ADC_A_r8(registers.B);
                 break;
             case 0x89:
+                ADC_A_r8(registers.C);
                 break;
             case 0x8A:
+                ADC_A_r8(registers.D);
                 break;
             case 0x8B:
+                ADC_A_r8(registers.E);
                 break;
             case 0x8C:
+                ADC_A_r8(registers.H);
                 break;
             case 0x8D:
+                ADC_A_r8(registers.L);
                 break;
             case 0x8E:
+                ADC_A_pHL();
                 break;
             case 0x8F:
+                ADC_A_r8(registers.A);
                 break;
             case 0x90:
+                SUB_A_r8(registers.B);
                 break;
             case 0x91:
+                SUB_A_r8(registers.C);
                 break;
             case 0x92:
+                SUB_A_r8(registers.D);
                 break;
             case 0x93:
+                SUB_A_r8(registers.E);
                 break;
             case 0x94:
+                SUB_A_r8(registers.H);
                 break;
             case 0x95:
+                SUB_A_r8(registers.L);
                 break;
             case 0x96:
+                SUB_A_pHL();
                 break;
             case 0x97:
+                SUB_A_r8(registers.A);
                 break;
             case 0x98:
+                SBC_A_r8(registers.B);
                 break;
             case 0x99:
+                SBC_A_r8(registers.C);
                 break;
             case 0x9A:
+                SBC_A_r8(registers.D);
                 break;
             case 0x9B:
+                SBC_A_r8(registers.E);
                 break;
             case 0x9C:
+                SBC_A_r8(registers.H);
                 break;
             case 0x9D:
+                SBC_A_r8(registers.L);
                 break;
             case 0x9E:
+                SBC_A_pHL();
                 break;
             case 0x9F:
+                SBC_A_r8(registers.A);
                 break;
             case 0xA0:
+                AND_A_r8(registers.B);
                 break;
             case 0xA1:
+                AND_A_r8(registers.C);
                 break;
             case 0xA2:
+                AND_A_r8(registers.D);
                 break;
             case 0xA3:
+                AND_A_r8(registers.E);
                 break;
             case 0xA4:
+                AND_A_r8(registers.H);
                 break;
             case 0xA5:
+                AND_A_r8(registers.L);
                 break;
             case 0xA6:
+                AND_A_pHL();
                 break;
             case 0xA7:
+                AND_A_r8(registers.A);
                 break;
             case 0xA8:
+                XOR_A_r8(registers.B);
                 break;
             case 0xA9:
+                XOR_A_r8(registers.C);
                 break;
             case 0xAA:
+                XOR_A_r8(registers.D);
                 break;
             case 0xAB:
+                XOR_A_r8(registers.E);
                 break;
             case 0xAC:
+                XOR_A_r8(registers.H);
                 break;
             case 0xAD:
+                XOR_A_r8(registers.L);
                 break;
             case 0xAE:
+                XOR_A_pHL();
                 break;
             case 0xAF:
+                XOR_A_r8(registers.A);
                 break;
             case 0xB0:
+                OR_A_r8(registers.B);
                 break;
             case 0xB1:
+                OR_A_r8(registers.C);
                 break;
             case 0xB2:
+                OR_A_r8(registers.D);
                 break;
             case 0xB3:
+                OR_A_r8(registers.E);
                 break;
             case 0xB4:
+                OR_A_r8(registers.H);
                 break;
             case 0xB5:
+                OR_A_r8(registers.L);
                 break;
             case 0xB6:
+                OR_A_pHL();
                 break;
             case 0xB7:
+                OR_A_r8(registers.A);
                 break;
             case 0xB8:
+                CP_A_r8(registers.B);
                 break;
             case 0xB9:
+                CP_A_r8(registers.C);
                 break;
             case 0xBA:
+                CP_A_r8(registers.D);
                 break;
             case 0xBB:
+                CP_A_r8(registers.E);
                 break;
             case 0xBC:
+                CP_A_r8(registers.H);
                 break;
             case 0xBD:
+                CP_A_r8(registers.L);
                 break;
             case 0xBE:
+                CP_A_pHL();
                 break;
             case 0xBF:
+                CP_A_r8(registers.A);
                 break;
             case 0xC0:
                 break;
@@ -1204,6 +1597,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0xC5:
                 break;
             case 0xC6:
+                ADD_A_u8();
                 break;
             case 0xC7:
                 break;
@@ -1220,6 +1614,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0xCD:
                 break;
             case 0xCE:
+                ADC_A_u8();
                 break;
             case 0xCF:
                 break;
@@ -1237,6 +1632,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0xD5:
                 break;
             case 0xD6:
+                SUB_A_u8();
                 break;
             case 0xD7:
                 break;
@@ -1255,6 +1651,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 // UNUSED
                 break;
             case 0xDE:
+                SBC_A_u8();
                 break;
             case 0xDF:
                 break;
@@ -1275,10 +1672,12 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0xE5:
                 break;
             case 0xE6:
+                AND_A_u8();
                 break;
             case 0xE7:
                 break;
             case 0xE8:
+                ADD_SP_i8();
                 break;
             case 0xE9:
                 break;
@@ -1295,6 +1694,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 // UNUSED
                 break;
             case 0xEE:
+                XOR_A_u8();
                 break;
             case 0xEF:
                 break;
@@ -1314,6 +1714,7 @@ void CPU::decode_opcode(uint16_t opcode) {
             case 0xF5:
                 break;
             case 0xF6:
+                OR_A_u8();
                 break;
             case 0xF7:
                 break;
@@ -1335,6 +1736,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 // UNUSED
                 break;
             case 0xFE:
+                CP_A_u8();
                 break;
             case 0xFF:
                 break;

@@ -91,8 +91,40 @@ void Registers::b8_carry(int v1, int v2) {
     }
 }
 
+void Registers::b8_carry(int v1, int v2, int v3) {
+    if(((v1 & 0xFF) + (v2 & 0xFF) + (v3 & 0xFF)) & 0x100){
+        set_C(1);
+    }else{
+        set_C(0);
+    }
+}
+
+void Registers::b16_carry(int v1, int v2) {
+    if(((v1 & 0xFFFF) + (v2 & 0xFFFF)) & 0x10000){
+        set_C(1);
+    }else{
+        set_C(0);
+    }
+}
+
 void Registers::b4_half_carry(int v1, int v2) {
     if(((v1 & 0xF) + (v2 & 0xF)) & 0x10){
+        set_H(1);
+    }else{
+        set_H(0);
+    }
+}
+
+void Registers::b4_half_carry(int v1, int v2, int v3) {
+    if(((v1 & 0xF) + (v2 & 0xF) + (v3 & 0xF)) & 0x10){
+        set_H(1);
+    }else{
+        set_H(0);
+    }
+}
+
+void Registers::b12_half_carry(int v1, int v2) {
+    if(((v1 & 0xFFF) + (v2 & 0xFFF)) & 0x1000){
         set_H(1);
     }else{
         set_H(0);
