@@ -9,19 +9,19 @@ class CPU {
 public:
     typedef int (CPU::*opcode_func)(uint16_t, uint16_t);
 
-    uint16_t program_counter;
-    uint16_t stack_pointer;
-    Registers registers;
-    MMU mmu;
-    bool enable_interrupt;
-    bool IME;
-    bool halted;
-    bool stopped;
-    bool skip_handler;
-    bool halt_bug;
+    uint16_t program_counter = 0x100;
+    uint16_t stack_pointer = 0xFFFE;
+    Registers registers = Registers();
+    MMU mmu = MMU();
+    bool enable_interrupt = false;
+    bool IME = false;
+    bool halted = false;
+    bool stopped = false;
+    bool skip_handler = false;
+    bool halt_bug = false;
 
-    uint8_t t_cycles;
-    uint32_t cycles_per_frame;
+    uint8_t t_cycles = 0;
+    uint32_t cycles_per_frame = 69905;
 
     CPU();
 

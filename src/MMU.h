@@ -9,8 +9,20 @@
 
 class MMU {
 public:
+    // 64 KiB internal memory
     uint8_t gb_memory[0x10000];
-    uint8_t cartridge_memory[0x200000];
+
+    // 8 MiB cartridge memory
+    uint8_t* cartridge_memory = new uint8_t[0x800000]();
+
+    // 128 KiB external RAM
+    uint8_t external_RAM[0x20000];
+    bool RAM_enabled = false;
+
+    uint8_t MBC = 0;
+    uint8_t MBC_mode = 0;
+    uint16_t ROM_bank = 1;
+    uint8_t RAM_bank = 0;
 
     MMU();
     void load_ROM(std::string exec_path, std::string file_name);

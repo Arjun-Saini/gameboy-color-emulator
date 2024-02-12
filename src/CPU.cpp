@@ -1,18 +1,7 @@
 #include "CPU.h"
 
 CPU::CPU() {
-    mmu = MMU();
-    registers = Registers();
-    t_cycles = 0;
-    cycles_per_frame = 69905;
-    IME = false;
-    halted = false;
-    skip_handler = false;
-    halt_bug = true;
-
     // Initialize values
-//    program_counter = 0x100;
-    stack_pointer = 0xFFFE;
     registers.set_AF(0x01B0);
     registers.set_BC(0x0013);
     registers.set_DE(0x00D8);
