@@ -15,6 +15,10 @@ public:
     MMU mmu;
     bool enable_interrupt;
     bool IME;
+    bool halted;
+    bool stopped;
+    bool skip_handler;
+    bool halt_bug;
 
     uint8_t t_cycles;
     uint32_t cycles_per_frame;
@@ -23,6 +27,8 @@ public:
 
     uint16_t next_opcode();
     void decode_opcode(uint16_t opcode);
+    void detect_interrupt();
+    void process_interrupt(uint8_t* IF, int i);
 
     // Load instructions
     void LD_r8_r8(uint8_t* r1, uint8_t r2);
@@ -115,33 +121,33 @@ public:
     void STOP();
 
     // Bit operations
-    void BIT_u3_r8();
-    void BIT_u3_pHL();
-    void RES_u3_r8();
-    void RES_u3_pHL();
-    void SET_u3_r8();
-    void SET_u3_pHL();
-    void SWAP_r8();
+    void BIT_u3_r8(uint8_t u, uint8_t r);
+    void BIT_u3_pHL(uint8_t u);
+    void RES_u3_r8(uint8_t u, uint8_t* r);
+    void RES_u3_pHL(uint8_t u);
+    void SET_u3_r8(uint8_t u, uint8_t* r);
+    void SET_u3_pHL(uint8_t u);
+    void SWAP_r8(uint8_t* r);
     void SWAP_pHL();
 
     // Bit shifts
-    void RL_r8();
+    void RL_r8(uint8_t* r);
     void RL_pHL();
     void RLA();
-    void RLC_r8();
+    void RLC_r8(uint8_t* r);
     void RLC_pHL();
     void RLCA();
-    void RR_r8();
+    void RR_r8(uint8_t* r);
     void RR_pHL();
     void RRA();
-    void RRC_r8();
+    void RRC_r8(uint8_t* r);
     void RRC_pHL();
     void RRCA();
-    void SLA_r8();
+    void SLA_r8(uint8_t* r);
     void SLA_pHL();
-    void SRA_r8();
+    void SRA_r8(uint8_t* r);
     void SRA_pHL();
-    void SRL_r8();
+    void SRL_r8(uint8_t* r);
     void SRL_pHL();
 };
 

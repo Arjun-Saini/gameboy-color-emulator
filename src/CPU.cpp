@@ -6,6 +6,9 @@ CPU::CPU() {
     t_cycles = 0;
     cycles_per_frame = 69905;
     IME = false;
+    halted = false;
+    skip_handler = false;
+    halt_bug = true;
 
     // Initialize values
 //    program_counter = 0x100;
@@ -657,10 +660,24 @@ void CPU::EI() {
     t_cycles += 4;
 }
 
-
-// TODO implement interrupt behavior first
 void CPU::HALT() {
-
+    if(IME){
+        // wait for interrupt, then call handler normally
+        halted = true;
+    }else{
+        uint8_t IE = mmu.read_byte(0xFFFF);
+        uint8_t IF = mmu.read_byte(0xFF0F);
+        if((IE & IF) > 0){
+            // continue, cause bug where program counter is not incremented on the next instruction
+            halt_bug = true;
+        }else{
+            // wait for interrupt, but handler is not called
+            halted = true;
+            skip_handler = true;
+        }
+    }
+    // TODO not sure if this is necessary
+//    t_cycles += 4;
 }
 
 void CPU::NOP() {
@@ -674,14 +691,278 @@ void CPU::SCF() {
     t_cycles += 4;
 }
 
-// TODO
 void CPU::STOP() {
+    stopped = true;
+}
 
+void CPU::BIT_u3_r8(uint8_t u, uint8_t r) {
+    registers.set_Z(~((r >> u) & 1));
+    registers.set_N(0);
+    registers.set_H(1);
+    t_cycles += 8;
+}
+
+void CPU::BIT_u3_pHL(uint8_t u) {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    registers.set_Z(~((pHL >> u) & 1));
+    registers.set_N(0);
+    registers.set_H(1);
+    t_cycles += 12;
+}
+
+void CPU::RES_u3_r8(uint8_t u, uint8_t *r) {
+    *r &= ~(1 << u);
+    t_cycles += 8;
+}
+
+void CPU::RES_u3_pHL(uint8_t u) {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    pHL &= ~(1 << u);
+    mmu.write_byte(registers.get_HL(), pHL);
+    t_cycles += 16;
+}
+
+void CPU::SET_u3_r8(uint8_t u, uint8_t *r) {
+    *r |= 1 << u;
+    t_cycles += 8;
+}
+
+void CPU::SET_u3_pHL(uint8_t u) {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    pHL |= 1 << u;
+    mmu.write_byte(registers.get_HL(), pHL);
+    t_cycles += 16;
+}
+
+void CPU::SWAP_r8(uint8_t *r) {
+    uint8_t lower = *r << 4;
+    uint8_t upper = *r >> 4;
+    *r = lower | upper;
+    registers.set_Z(*r == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(0);
+    t_cycles += 8;
+}
+
+void CPU::SWAP_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    uint8_t lower = pHL << 4;
+    uint8_t upper = pHL >> 4;
+    pHL = lower | upper;
+    mmu.write_byte(registers.get_HL(), pHL);
+    registers.set_Z(pHL == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(0);
+    t_cycles += 16;
+}
+
+void CPU::RL_r8(uint8_t *r) {
+    uint8_t b7 = (*r & 0x80) >> 7;
+    *r = (*r << 1) | registers.get_C();
+    registers.set_Z(*r == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 8;
+}
+
+void CPU::RL_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    uint8_t b7 = (pHL & 0x80) >> 7;
+    pHL = (pHL << 1) | registers.get_C();
+    mmu.write_byte(registers.get_HL(), pHL);
+    registers.set_Z(pHL == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 16;
+}
+
+void CPU::RLA() {
+    uint8_t b7 = (registers.A & 0x80) >> 7;
+    registers.A = (registers.A << 1) | registers.get_C();
+    registers.set_Z(0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 4;
+}
+
+void CPU::RLC_r8(uint8_t *r) {
+    uint8_t b7 = (*r & 0x80) >> 7;
+    *r = (*r << 1) | b7;
+    registers.set_Z(*r == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 8;
+}
+
+void CPU::RLC_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    uint8_t b7 = (pHL & 0x80) >> 7;
+    pHL = (pHL << 1) | b7;
+    mmu.write_byte(registers.get_HL(), pHL);
+    registers.set_Z(pHL == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 16;
+}
+
+void CPU::RLCA() {
+    uint8_t b7 = (registers.A & 0x80) >> 7;
+    registers.A = (registers.A << 1) | b7;
+    registers.set_Z(0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 4;
+}
+
+void CPU::RR_r8(uint8_t *r) {
+    uint8_t b7 = *r & 1;
+    *r = (registers.get_C() << 7) | (*r >> 1);
+    registers.set_Z(*r == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 8;
+}
+
+void CPU::RR_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    uint8_t b7 = pHL & 1;
+    pHL = (registers.get_C() << 7) | (pHL >> 1);
+    mmu.write_byte(registers.get_HL(), pHL);
+    registers.set_Z(pHL == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 16;
+}
+
+void CPU::RRA() {
+    uint8_t b7 = registers.A & 1;
+    registers.A = (registers.get_C() << 7) | (registers.A >> 1);
+    registers.set_Z(0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 4;
+}
+
+void CPU::RRC_r8(uint8_t *r) {
+    uint8_t b7 = *r & 1;
+    *r = (b7 << 7) | (*r >> 1);
+    registers.set_Z(*r == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 8;
+}
+
+void CPU::RRC_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    uint8_t b7 = pHL & 1;
+    pHL = (b7 << 7) | (pHL >> 1);
+    mmu.write_byte(registers.get_HL(), pHL);
+    registers.set_Z(pHL == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 16;
+}
+
+void CPU::RRCA() {
+    uint8_t b7 = registers.A & 1;
+    registers.A = (b7 << 7) | (registers.A >> 1);
+    registers.set_Z(0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 4;
+}
+
+void CPU::SLA_r8(uint8_t *r) {
+    uint8_t b7 = (*r & 0x80) >> 7;
+    *r <<= 1;
+    registers.set_Z(*r == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 8;
+}
+
+void CPU::SLA_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    uint8_t b7 = (pHL & 0x80) >> 7;
+    pHL <<= 1;
+    mmu.write_byte(registers.get_HL(), pHL);
+    registers.set_Z(pHL == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b7);
+    t_cycles += 16;
+}
+
+void CPU::SRA_r8(uint8_t *r) {
+    uint8_t b7 = *r & 0x80;
+    uint8_t b0 = *r & 1;
+    *r = b7 | (*r >> 1);
+    registers.set_Z(*r == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b0);
+    t_cycles += 8;
+}
+
+void CPU::SRA_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    uint8_t b7 = pHL & 0x80;
+    uint8_t b0 = pHL & 1;
+    pHL = b7 | (pHL >> 1);
+    mmu.write_byte(registers.get_HL(), pHL);
+    registers.set_Z(pHL == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b0);
+    t_cycles += 16;
+}
+
+void CPU::SRL_r8(uint8_t *r) {
+    uint8_t b0 = *r & 1;
+    *r >>= 1;
+    registers.set_Z(*r == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b0);
+    t_cycles += 8;
+}
+
+void CPU::SRL_pHL() {
+    uint8_t pHL = mmu.read_byte(registers.get_HL());
+    uint8_t b0 = pHL & 1;
+    pHL >>= 1;
+    mmu.write_byte(registers.get_HL(), pHL);
+    registers.set_Z(pHL == 0);
+    registers.set_N(0);
+    registers.set_H(0);
+    registers.set_C(b0);
+    t_cycles += 16;
 }
 
 // Returns opcode at program_counter
 uint16_t CPU::next_opcode() {
     uint8_t opcode = mmu.read_byte(program_counter++);
+
+    if(halt_bug){
+        program_counter--;
+        halt_bug = false;
+    }
+
     if(opcode == 0xCB){
         return (opcode << 8) | next_opcode();
     }
@@ -694,517 +975,772 @@ void CPU::decode_opcode(uint16_t opcode) {
         // CB-prefixed opcodes
         switch (opcode & 0xFF) {
             case 0x00:
+                RLC_r8(&registers.B);
                 break;
             case 0x01:
+                RLC_r8(&registers.C);
                 break;
             case 0x02:
+                RLC_r8(&registers.D);
                 break;
             case 0x03:
+                RLC_r8(&registers.E);
                 break;
             case 0x04:
+                RLC_r8(&registers.H);
                 break;
             case 0x05:
+                RLC_r8(&registers.L);
                 break;
             case 0x06:
+                RLC_pHL();
                 break;
             case 0x07:
+                RLC_r8(&registers.A);
                 break;
             case 0x08:
+                RRC_r8(&registers.B);
                 break;
             case 0x09:
+                RRC_r8(&registers.C);
                 break;
             case 0x0A:
+                RRC_r8(&registers.D);
                 break;
             case 0x0B:
+                RRC_r8(&registers.E);
                 break;
             case 0x0C:
+                RRC_r8(&registers.H);
                 break;
             case 0x0D:
+                RRC_r8(&registers.L);
                 break;
             case 0x0E:
+                RRC_pHL();
                 break;
             case 0x0F:
+                RRC_r8(&registers.A);
                 break;
             case 0x10:
+                RL_r8(&registers.B);
                 break;
             case 0x11:
+                RL_r8(&registers.C);
                 break;
             case 0x12:
+                RL_r8(&registers.D);
                 break;
             case 0x13:
+                RL_r8(&registers.E);
                 break;
             case 0x14:
+                RL_r8(&registers.H);
                 break;
             case 0x15:
+                RL_r8(&registers.L);
                 break;
             case 0x16:
+                RL_pHL();
                 break;
             case 0x17:
+                RL_r8(&registers.A);
                 break;
             case 0x18:
+                RR_r8(&registers.B);
                 break;
             case 0x19:
+                RR_r8(&registers.C);
                 break;
             case 0x1A:
+                RR_r8(&registers.D);
                 break;
             case 0x1B:
+                RR_r8(&registers.E);
                 break;
             case 0x1C:
+                RR_r8(&registers.H);
                 break;
             case 0x1D:
+                RR_r8(&registers.L);
                 break;
             case 0x1E:
+                RR_pHL();
                 break;
             case 0x1F:
+                RR_r8(&registers.A);
                 break;
             case 0x20:
+                SLA_r8(&registers.B);
                 break;
             case 0x21:
+                SLA_r8(&registers.C);
                 break;
             case 0x22:
+                SLA_r8(&registers.D);
                 break;
             case 0x23:
+                SLA_r8(&registers.E);
                 break;
             case 0x24:
+                SLA_r8(&registers.H);
                 break;
             case 0x25:
+                SLA_r8(&registers.L);
                 break;
             case 0x26:
+                SLA_pHL();
                 break;
             case 0x27:
+                SLA_r8(&registers.A);
                 break;
             case 0x28:
+                SRA_r8(&registers.B);
                 break;
             case 0x29:
+                SRA_r8(&registers.C);
                 break;
             case 0x2A:
+                SRA_r8(&registers.D);
                 break;
             case 0x2B:
+                SRA_r8(&registers.E);
                 break;
             case 0x2C:
+                SRA_r8(&registers.H);
                 break;
             case 0x2D:
+                SRA_r8(&registers.L);
                 break;
             case 0x2E:
+                SRA_pHL();
                 break;
             case 0x2F:
+                SRA_r8(&registers.A);
                 break;
             case 0x30:
+                SWAP_r8(&registers.B);
                 break;
             case 0x31:
+                SWAP_r8(&registers.C);
                 break;
             case 0x32:
+                SWAP_r8(&registers.D);
                 break;
             case 0x33:
-                INC_SP();
+                SWAP_r8(&registers.E);
                 break;
             case 0x34:
+                SWAP_r8(&registers.H);
                 break;
             case 0x35:
+                SWAP_r8(&registers.L);
                 break;
             case 0x36:
+                SWAP_pHL();
                 break;
             case 0x37:
+                SWAP_r8(&registers.A);
                 break;
             case 0x38:
+                SRL_r8(&registers.B);
                 break;
             case 0x39:
+                SRL_r8(&registers.C);
                 break;
             case 0x3A:
+                SRL_r8(&registers.D);
                 break;
             case 0x3B:
+                SRL_r8(&registers.E);
                 break;
             case 0x3C:
+                SRL_r8(&registers.H);
                 break;
             case 0x3D:
+                SRL_r8(&registers.L);
                 break;
             case 0x3E:
+                SRL_pHL();
                 break;
             case 0x3F:
+                SRL_r8(&registers.A);
                 break;
             case 0x40:
+                BIT_u3_r8(0, registers.B);
                 break;
             case 0x41:
+                BIT_u3_r8(0, registers.C);
                 break;
             case 0x42:
+                BIT_u3_r8(0, registers.D);
                 break;
             case 0x43:
+                BIT_u3_r8(0, registers.E);
                 break;
             case 0x44:
+                BIT_u3_r8(0, registers.H);
                 break;
             case 0x45:
+                BIT_u3_r8(0, registers.L);
                 break;
             case 0x46:
+                BIT_u3_pHL(0);
                 break;
             case 0x47:
+                BIT_u3_r8(0, registers.A);
                 break;
             case 0x48:
+                BIT_u3_r8(1, registers.B);
                 break;
             case 0x49:
+                BIT_u3_r8(1, registers.C);
                 break;
             case 0x4A:
+                BIT_u3_r8(1, registers.D);
                 break;
             case 0x4B:
+                BIT_u3_r8(1, registers.E);
                 break;
             case 0x4C:
+                BIT_u3_r8(1, registers.H);
                 break;
             case 0x4D:
+                BIT_u3_r8(1, registers.L);
                 break;
             case 0x4E:
+                BIT_u3_pHL(1);
                 break;
             case 0x4F:
+                BIT_u3_r8(1, registers.A);
                 break;
             case 0x50:
+                BIT_u3_r8(2, registers.B);
                 break;
             case 0x51:
+                BIT_u3_r8(2, registers.C);
                 break;
             case 0x52:
+                BIT_u3_r8(2, registers.D);
                 break;
             case 0x53:
+                BIT_u3_r8(2, registers.E);
                 break;
             case 0x54:
+                BIT_u3_r8(2, registers.H);
                 break;
             case 0x55:
+                BIT_u3_r8(2, registers.L);
                 break;
             case 0x56:
+                BIT_u3_pHL(2);
                 break;
             case 0x57:
+                BIT_u3_r8(2, registers.A);
                 break;
             case 0x58:
+                BIT_u3_r8(3, registers.B);
                 break;
             case 0x59:
+                BIT_u3_r8(3, registers.C);
                 break;
             case 0x5A:
+                BIT_u3_r8(3, registers.D);
                 break;
             case 0x5B:
+                BIT_u3_r8(3, registers.E);
                 break;
             case 0x5C:
+                BIT_u3_r8(3, registers.H);
                 break;
             case 0x5D:
+                BIT_u3_r8(3, registers.L);
                 break;
             case 0x5E:
+                BIT_u3_pHL(3);
                 break;
             case 0x5F:
+                BIT_u3_r8(3, registers.A);
                 break;
             case 0x60:
+                BIT_u3_r8(4, registers.B);
                 break;
             case 0x61:
+                BIT_u3_r8(4, registers.C);
                 break;
             case 0x62:
+                BIT_u3_r8(4, registers.D);
                 break;
             case 0x63:
+                BIT_u3_r8(4, registers.E);
                 break;
             case 0x64:
+                BIT_u3_r8(4, registers.H);
                 break;
             case 0x65:
+                BIT_u3_r8(4, registers.L);
                 break;
             case 0x66:
+                BIT_u3_pHL(4);
                 break;
             case 0x67:
+                BIT_u3_r8(4, registers.A);
                 break;
             case 0x68:
+                BIT_u3_r8(5, registers.B);
                 break;
             case 0x69:
+                BIT_u3_r8(5, registers.C);
                 break;
             case 0x6A:
+                BIT_u3_r8(5, registers.D);
                 break;
             case 0x6B:
+                BIT_u3_r8(5, registers.E);
                 break;
             case 0x6C:
+                BIT_u3_r8(5, registers.H);
                 break;
             case 0x6D:
+                BIT_u3_r8(5, registers.L);
                 break;
             case 0x6E:
+                BIT_u3_pHL(5);
                 break;
             case 0x6F:
+                BIT_u3_r8(5, registers.A);
                 break;
             case 0x70:
+                BIT_u3_r8(6, registers.B);
                 break;
             case 0x71:
+                BIT_u3_r8(6, registers.C);
                 break;
             case 0x72:
+                BIT_u3_r8(6, registers.D);
                 break;
             case 0x73:
+                BIT_u3_r8(6, registers.E);
                 break;
             case 0x74:
+                BIT_u3_r8(6, registers.H);
                 break;
             case 0x75:
+                BIT_u3_r8(6, registers.L);
                 break;
             case 0x76:
+                BIT_u3_pHL(6);
                 break;
             case 0x77:
+                BIT_u3_r8(6, registers.A);
                 break;
             case 0x78:
+                BIT_u3_r8(7, registers.B);
                 break;
             case 0x79:
+                BIT_u3_r8(7, registers.C);
                 break;
             case 0x7A:
+                BIT_u3_r8(7, registers.D);
                 break;
             case 0x7B:
+                BIT_u3_r8(7, registers.E);
                 break;
             case 0x7C:
+                BIT_u3_r8(7, registers.H);
                 break;
             case 0x7D:
+                BIT_u3_r8(7, registers.L);
                 break;
             case 0x7E:
+                BIT_u3_pHL(7);
                 break;
             case 0x7F:
+                BIT_u3_r8(7, registers.A);
                 break;
             case 0x80:
+                RES_u3_r8(0, &registers.B);
                 break;
             case 0x81:
+                RES_u3_r8(0, &registers.C);
                 break;
             case 0x82:
+                RES_u3_r8(0, &registers.D);
                 break;
             case 0x83:
+                RES_u3_r8(0, &registers.E);
                 break;
             case 0x84:
+                RES_u3_r8(0, &registers.H);
                 break;
             case 0x85:
+                RES_u3_r8(0, &registers.L);
                 break;
             case 0x86:
+                RES_u3_pHL(0);
                 break;
             case 0x87:
+                RES_u3_r8(0, &registers.A);
                 break;
             case 0x88:
+                RES_u3_r8(1, &registers.B);
                 break;
             case 0x89:
+                RES_u3_r8(1, &registers.C);
                 break;
             case 0x8A:
+                RES_u3_r8(1, &registers.D);
                 break;
             case 0x8B:
+                RES_u3_r8(1, &registers.E);
                 break;
             case 0x8C:
+                RES_u3_r8(1, &registers.H);
                 break;
             case 0x8D:
+                RES_u3_r8(1, &registers.L);
                 break;
             case 0x8E:
+                RES_u3_pHL(1);
                 break;
             case 0x8F:
+                RES_u3_r8(1, &registers.A);
                 break;
             case 0x90:
+                RES_u3_r8(2, &registers.B);
                 break;
             case 0x91:
+                RES_u3_r8(2, &registers.C);
                 break;
             case 0x92:
+                RES_u3_r8(2, &registers.D);
                 break;
             case 0x93:
+                RES_u3_r8(2, &registers.E);
                 break;
             case 0x94:
+                RES_u3_r8(2, &registers.H);
                 break;
             case 0x95:
+                RES_u3_r8(2, &registers.L);
                 break;
             case 0x96:
+                RES_u3_pHL(2);
                 break;
             case 0x97:
+                RES_u3_r8(2, &registers.A);
                 break;
             case 0x98:
+                RES_u3_r8(3, &registers.B);
                 break;
             case 0x99:
+                RES_u3_r8(3, &registers.C);
                 break;
             case 0x9A:
+                RES_u3_r8(3, &registers.D);
                 break;
             case 0x9B:
+                RES_u3_r8(3, &registers.E);
                 break;
             case 0x9C:
+                RES_u3_r8(3, &registers.H);
                 break;
             case 0x9D:
+                RES_u3_r8(3, &registers.L);
                 break;
             case 0x9E:
+                RES_u3_pHL(3);
                 break;
             case 0x9F:
+                RES_u3_r8(3, &registers.A);
                 break;
             case 0xA0:
+                RES_u3_r8(4, &registers.B);
                 break;
             case 0xA1:
+                RES_u3_r8(4, &registers.C);
                 break;
             case 0xA2:
+                RES_u3_r8(4, &registers.D);
                 break;
             case 0xA3:
+                RES_u3_r8(4, &registers.E);
                 break;
             case 0xA4:
+                RES_u3_r8(4, &registers.H);
                 break;
             case 0xA5:
+                RES_u3_r8(4, &registers.L);
                 break;
             case 0xA6:
+                RES_u3_pHL(4);
                 break;
             case 0xA7:
+                RES_u3_r8(4, &registers.A);
                 break;
             case 0xA8:
+                RES_u3_r8(5, &registers.B);
                 break;
             case 0xA9:
+                RES_u3_r8(5, &registers.C);
                 break;
             case 0xAA:
+                RES_u3_r8(5, &registers.D);
                 break;
             case 0xAB:
+                RES_u3_r8(5, &registers.E);
                 break;
             case 0xAC:
+                RES_u3_r8(5, &registers.H);
                 break;
             case 0xAD:
+                RES_u3_r8(5, &registers.L);
                 break;
             case 0xAE:
+                RES_u3_pHL(5);
                 break;
             case 0xAF:
+                RES_u3_r8(5, &registers.A);
                 break;
             case 0xB0:
+                RES_u3_r8(6, &registers.B);
                 break;
             case 0xB1:
+                RES_u3_r8(6, &registers.C);
                 break;
             case 0xB2:
+                RES_u3_r8(6, &registers.D);
                 break;
             case 0xB3:
+                RES_u3_r8(6, &registers.E);
                 break;
             case 0xB4:
+                RES_u3_r8(6, &registers.H);
                 break;
             case 0xB5:
+                RES_u3_r8(6, &registers.L);
                 break;
             case 0xB6:
+                RES_u3_pHL(6);
                 break;
             case 0xB7:
+                RES_u3_r8(6, &registers.A);
                 break;
             case 0xB8:
+                RES_u3_r8(7, &registers.B);
                 break;
             case 0xB9:
+                RES_u3_r8(7, &registers.C);
                 break;
             case 0xBA:
+                RES_u3_r8(7, &registers.D);
                 break;
             case 0xBB:
+                RES_u3_r8(7, &registers.E);
                 break;
             case 0xBC:
+                RES_u3_r8(7, &registers.H);
                 break;
             case 0xBD:
+                RES_u3_r8(7, &registers.L);
                 break;
             case 0xBE:
+                RES_u3_pHL(7);
                 break;
             case 0xBF:
+                RES_u3_r8(7, &registers.A);
                 break;
             case 0xC0:
+                SET_u3_r8(0, &registers.B);
                 break;
             case 0xC1:
+                SET_u3_r8(0, &registers.C);
                 break;
             case 0xC2:
+                SET_u3_r8(0, &registers.D);
                 break;
             case 0xC3:
+                SET_u3_r8(0, &registers.E);
                 break;
             case 0xC4:
+                SET_u3_r8(0, &registers.H);
                 break;
             case 0xC5:
+                SET_u3_r8(0, &registers.L);
                 break;
             case 0xC6:
+                SET_u3_pHL(0);
                 break;
             case 0xC7:
+                SET_u3_r8(0, &registers.A);
                 break;
             case 0xC8:
+                SET_u3_r8(1, &registers.B);
                 break;
             case 0xC9:
+                SET_u3_r8(1, &registers.C);
                 break;
             case 0xCA:
+                SET_u3_r8(1, &registers.D);
                 break;
             case 0xCB:
+                SET_u3_r8(1, &registers.E);
                 break;
             case 0xCC:
+                SET_u3_r8(1, &registers.H);
                 break;
             case 0xCD:
+                SET_u3_r8(1, &registers.L);
                 break;
             case 0xCE:
+                SET_u3_pHL(1);
                 break;
             case 0xCF:
+                SET_u3_r8(1, &registers.A);
                 break;
             case 0xD0:
+                SET_u3_r8(2, &registers.B);
                 break;
             case 0xD1:
+                SET_u3_r8(2, &registers.C);
                 break;
             case 0xD2:
+                SET_u3_r8(2, &registers.D);
                 break;
             case 0xD3:
+                SET_u3_r8(2, &registers.E);
                 break;
             case 0xD4:
+                SET_u3_r8(2, &registers.H);
                 break;
             case 0xD5:
+                SET_u3_r8(2, &registers.L);
                 break;
             case 0xD6:
+                SET_u3_pHL(2);
                 break;
             case 0xD7:
+                SET_u3_r8(2, &registers.A);
                 break;
             case 0xD8:
+                SET_u3_r8(3, &registers.B);
                 break;
             case 0xD9:
+                SET_u3_r8(3, &registers.C);
                 break;
             case 0xDA:
+                SET_u3_r8(3, &registers.D);
                 break;
             case 0xDB:
+                SET_u3_r8(3, &registers.E);
                 break;
             case 0xDC:
+                SET_u3_r8(3, &registers.H);
                 break;
             case 0xDD:
+                SET_u3_r8(3, &registers.L);
                 break;
             case 0xDE:
+                SET_u3_pHL(3);
                 break;
             case 0xDF:
+                SET_u3_r8(3, &registers.A);
                 break;
             case 0xE0:
+                SET_u3_r8(4, &registers.B);
                 break;
             case 0xE1:
+                SET_u3_r8(4, &registers.C);
                 break;
             case 0xE2:
+                SET_u3_r8(4, &registers.D);
                 break;
             case 0xE3:
+                SET_u3_r8(4, &registers.E);
                 break;
             case 0xE4:
+                SET_u3_r8(4, &registers.H);
                 break;
             case 0xE5:
+                SET_u3_r8(4, &registers.L);
                 break;
             case 0xE6:
+                SET_u3_pHL(4);
                 break;
             case 0xE7:
+                SET_u3_r8(4, &registers.A);
                 break;
             case 0xE8:
+                SET_u3_r8(5, &registers.B);
                 break;
             case 0xE9:
+                SET_u3_r8(5, &registers.C);
                 break;
             case 0xEA:
+                SET_u3_r8(5, &registers.D);
                 break;
             case 0xEB:
+                SET_u3_r8(5, &registers.E);
                 break;
             case 0xEC:
+                SET_u3_r8(5, &registers.H);
                 break;
             case 0xED:
+                SET_u3_r8(5, &registers.L);
                 break;
             case 0xEE:
+                SET_u3_pHL(5);
                 break;
             case 0xEF:
+                SET_u3_r8(5, &registers.A);
                 break;
             case 0xF0:
+                SET_u3_r8(6, &registers.B);
                 break;
             case 0xF1:
+                SET_u3_r8(6, &registers.C);
                 break;
             case 0xF2:
+                SET_u3_r8(6, &registers.D);
                 break;
             case 0xF3:
+                SET_u3_r8(6, &registers.E);
                 break;
             case 0xF4:
+                SET_u3_r8(6, &registers.H);
                 break;
             case 0xF5:
+                SET_u3_r8(6, &registers.L);
                 break;
             case 0xF6:
+                SET_u3_pHL(6);
                 break;
             case 0xF7:
+                SET_u3_r8(6, &registers.A);
                 break;
             case 0xF8:
+                SET_u3_r8(7, &registers.B);
                 break;
             case 0xF9:
+                SET_u3_r8(7, &registers.C);
                 break;
             case 0xFA:
+                SET_u3_r8(7, &registers.D);
                 break;
             case 0xFB:
+                SET_u3_r8(7, &registers.E);
                 break;
             case 0xFC:
+                SET_u3_r8(7, &registers.H);
                 break;
             case 0xFD:
+                SET_u3_r8(7, &registers.L);
                 break;
             case 0xFE:
+                SET_u3_pHL(7);
                 break;
             case 0xFF:
+                SET_u3_r8(7, &registers.A);
                 break;
         }
     }else{
@@ -1232,6 +1768,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_r8_u8(&registers.B);
                 break;
             case 0x07:
+                RLCA();
                 break;
             case 0x08:
                 LD_pu16_SP();
@@ -1255,6 +1792,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_r8_u8(&registers.C);
                 break;
             case 0x0F:
+                RRCA();
                 break;
             case 0x10:
                 STOP();
@@ -1278,6 +1816,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_r8_u8(&registers.D);
                 break;
             case 0x17:
+                RLA();
                 break;
             case 0x18:
                 JR_i8();
@@ -1301,6 +1840,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_r8_u8(&registers.E);
                 break;
             case 0x1F:
+                RRA();
                 break;
             case 0x20:
                 JR_cc_i8(!registers.get_Z());
@@ -1360,6 +1900,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_pHLD_A();
                 break;
             case 0x33:
+                INC_SP();
                 break;
             case 0x34:
                 INC_pHL();
@@ -1815,6 +2356,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 JP_cc_u16(registers.get_Z());
                 break;
             case 0xCB:
+                // UNUSED (CB prefix handled in next_opcode())
                 break;
             case 0xCC:
                 CALL_cc_u16(registers.get_Z());
@@ -1974,4 +2516,53 @@ void CPU::decode_opcode(uint16_t opcode) {
                 break;
         }
     }
+}
+
+void CPU::detect_interrupt() {
+    uint8_t IE = mmu.read_byte(0xFFFF);
+    uint8_t IF = mmu.read_byte(0xFF0F);
+    if(IME){
+        // VBlank
+        if((IE & IF & 0b1) == 0b1){
+            process_interrupt(&IF, 0);
+        }
+        // LCD
+        else if((IE & IF & 0b10) == 0b10){
+            process_interrupt(&IF, 1);
+        }
+        // Timer
+        else if((IE & IF & 0b100) == 0b100){
+            process_interrupt(&IF, 2);
+        }
+        // Serial
+        else if((IE & IF & 0b1000) == 0b1000){
+            process_interrupt(&IF, 3);
+        }
+        // Joypad
+        else if((IE & IF & 0b10000) == 0b10000){
+            process_interrupt(&IF, 4);
+        }
+    }
+}
+
+// Executed when an interrupt is pending
+void CPU::process_interrupt(uint8_t* IF, int i) {
+    // Wake if halted/stopped
+    halted = false;
+    stopped = false;
+    if(skip_handler){
+        skip_handler = false;
+        return;
+    }
+
+    // Clear interrupt flags
+    *IF &= ~(1 << i);
+    mmu.write_byte(0xFF0F, *IF);
+    IME = false;
+
+    // Call interrupt handler
+    mmu.write_byte(--stack_pointer, program_counter & 0xFF00);
+    mmu.write_byte(--stack_pointer, program_counter & 0xFF);
+    program_counter = 0x40 + i * 8;
+    t_cycles += 20;
 }

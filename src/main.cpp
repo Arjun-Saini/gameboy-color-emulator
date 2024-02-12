@@ -36,16 +36,25 @@ int main(int argc, char* argv[]) {
             // Loops through all t-cycles for this frame
             uint32_t total_cycles = 0;
             while(total_cycles < cpu.cycles_per_frame){
-                uint16_t opcode = cpu.next_opcode();
-                cpu.decode_opcode(opcode);
+                if(cpu.halted || cpu.stopped){
+                    // Fake CPU cycle
+                    cpu.t_cycles++;
+                }else{
+                    uint16_t opcode = cpu.next_opcode();
+                    cpu.decode_opcode(opcode);
+                }
+
                 total_cycles += cpu.t_cycles;
 
                 // Advances PPU and APU to catch up with CPU
                 for(; cpu.t_cycles > 0; cpu.t_cycles--){
-                    ppu.tick();
-                    apu.tick();
+                    if(!cpu.stopped){
+                        ppu.tick();
+                        apu.tick();
+                    }
                 }
 
+                // Delays EI by one instruction
                 if(next_interrupt){
                     cpu.IME = true;
                     next_interrupt = false;
@@ -54,6 +63,8 @@ int main(int argc, char* argv[]) {
                     next_interrupt = true;
                     cpu.enable_interrupt = false;
                 }
+
+                cpu.detect_interrupt();
             }
         }
     }
