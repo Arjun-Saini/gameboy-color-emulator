@@ -35,6 +35,7 @@ int main(int argc, char* argv[]) {
 //        // TODO SDL event loop and inputs
 //
 //        // Enters this block once per frame
+//        uint8_t frame_count = 0;
 //        if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count() > FRAME_MS_DELTA){
 //            last_time = current_time;
 //
@@ -71,10 +72,16 @@ int main(int argc, char* argv[]) {
 //
 //                cpu.detect_interrupt();
 //            }
+//
+//            if(++frame_count == 60){
+//                frame_count = 0;
+//                cpu.mmu.update_RTC();
+//            }
 //        }
 //    }
 
     // TODO save external_RAM
+    // TODO save RTC data if MBC3
 
     return 0;
 }

@@ -176,9 +176,30 @@ void MMU::write_byte(uint16_t addr, uint8_t val) {
     }
 }
 
+// TODO update through system time instead of per frame to increase time even when off, also check halt flag importance
 void MMU::update_RTC() {
-    // TODO increment time by one second
-    for(int i = 0; i < 5; i++){
-        RTC_reg[i] = 0;
+    // seconds
+    if(++RTC_reg[0] == 60){
+        RTC_reg[0] = 0;
+        RTC_reg[1]++;
+    }
+
+    // minutes
+    if(RTC_reg[1] == 60){
+        RTC_reg[1] = 0;
+        RTC_reg[2]++;
+    }
+
+    // hours
+    if(RTC_reg[2] == 24){
+        RTC_reg[2] = 0;
+        if(RTC_reg[3] == 0xFF){
+            RTC_reg[4] |= 0x80;
+            RTC_reg[3] = 0;
+        }else{
+            RTC_reg[3]++;
+        }
+        RTC_reg[4] &= ~1;
+        RTC_reg[4] |= RTC_reg[3] >> 7;
     }
 }
