@@ -2555,3 +2555,9 @@ void CPU::process_interrupt(uint8_t* IF, int i) {
     program_counter = 0x40 + i * 8;
     t_cycles += 20;
 }
+
+void CPU::request_interrupt(uint8_t interrupt) {
+    uint8_t IF = mmu.read_byte(0xFF0F);
+    IF |= (1 << interrupt);
+    mmu.write_byte(0xFF0F, IF);
+}

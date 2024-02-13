@@ -183,6 +183,15 @@ void MMU::write_byte(uint16_t addr, uint8_t val) {
         }
     }
 
+    else if(addr == DIV_addr){
+        timer->DIV = 0;
+    }
+
+    else if(addr == TIMA_addr && timer->TMA_reload){
+        gb_memory[addr] = val;
+        timer->TMA_reload = false;
+    }
+
     else{
         gb_memory[addr] = val;
     }

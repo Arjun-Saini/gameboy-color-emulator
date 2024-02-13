@@ -1,11 +1,11 @@
+#ifndef GAMEBOY_COLOR_EMULATOR_MMU_H
+#define GAMEBOY_COLOR_EMULATOR_MMU_H
+
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-
-#ifndef GAMEBOY_COLOR_EMULATOR_MMU_H
-#define GAMEBOY_COLOR_EMULATOR_MMU_H
-
+#include "Timer.h"
 
 class MMU {
 public:
@@ -18,6 +18,8 @@ public:
     // 128 KiB external RAM
     uint8_t external_RAM[0x20000];
     bool RAM_enabled = false;
+
+    Timer* timer;
 
     uint8_t MBC = 0;
     uint8_t MBC_mode = 0;

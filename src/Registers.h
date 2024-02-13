@@ -1,7 +1,7 @@
-#include <cstdint>
-
 #ifndef GAMEBOY_COLOR_EMULATOR_REGISTERS_H
 #define GAMEBOY_COLOR_EMULATOR_REGISTERS_H
+
+#include <cstdint>
 
 class Registers {
 public:

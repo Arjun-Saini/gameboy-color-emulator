@@ -1,9 +1,9 @@
+#ifndef GAMEBOY_COLOR_EMULATOR_GAMEBOYCPU_H
+#define GAMEBOY_COLOR_EMULATOR_GAMEBOYCPU_H
+
 #include <iostream>
 #include "MMU.h"
 #include "Registers.h"
-
-#ifndef GAMEBOY_COLOR_EMULATOR_GAMEBOYCPU_H
-#define GAMEBOY_COLOR_EMULATOR_GAMEBOYCPU_H
 
 class CPU {
 public:
@@ -29,6 +29,7 @@ public:
     void decode_opcode(uint16_t opcode);
     void detect_interrupt();
     void process_interrupt(uint8_t* IF, int i);
+    void request_interrupt(uint8_t interrupt);
 
     // Load instructions
     void LD_r8_r8(uint8_t* r1, uint8_t r2);

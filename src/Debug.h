@@ -1,8 +1,7 @@
-#include "CPU.h"
-
 #ifndef GAMEBOY_COLOR_EMULATOR_DEBUG_H
 #define GAMEBOY_COLOR_EMULATOR_DEBUG_H
 
+#include "CPU.h"
 
 class Debug {
 public:
