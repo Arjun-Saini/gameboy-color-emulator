@@ -16,10 +16,15 @@ int main(int argc, char* argv[]) {
     bool next_interrupt = false;
     cpu.mmu.load_ROM(argv[0], "test");
 
-    uint8_t test = 0b11111111;
-    test &= ~0x1F;
-    test |= (0b0 & 0x1F);
-    std::cout << int(test);
+    cpu.mmu.MBC = 1;
+
+    std::cout << "ROM bank: " << int(cpu.mmu.ROM_bank) << std::endl;
+    std::cout << "ROM bank mode: " << int(cpu.mmu.MBC_mode) << std::endl;
+    std::cout << "RAM bank: " << int(cpu.mmu.RAM_bank) << std::endl << std::endl;
+
+    std::cout << "ROM bank: " << int(cpu.mmu.ROM_bank) << std::endl;
+    std::cout << "ROM bank mode: " << int(cpu.mmu.MBC_mode) << std::endl;
+    std::cout << "RAM bank: " << int(cpu.mmu.RAM_bank) << std::endl << std::endl;
 
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point current_time;

@@ -64,10 +64,19 @@ uint8_t MMU::read_byte(uint16_t addr) {
 
     // RAM banks 0-N
     else if(0xA000 <= addr && addr <= 0xBFFF){
-        return RAM_enabled ? external_RAM[0x2000 * RAM_bank + (addr - 0xA000)] : 0;
+        // TODO echo MBC2 ram since it only uses bottom 9 bits of addr
+        if(RAM_enabled){
+            if(MBC == 3 && RTC_index != 0){
+                return RTC_reg[RTC_index - 8];
+            }else{
+                return external_RAM[0x2000 * RAM_bank + (addr - 0xA000)];
+            }
+        }else{
+            return 0;
+        }
     }
 
-    // TODO CGB: 4 KiB WRAM banks 1-7
+    // TODO CGB: WRAM banks 1-7
 //    else if(0xD000 <= addr && addr <= 0xDFFF){
 //
 //    }
@@ -86,7 +95,17 @@ uint8_t MMU::read_byte(uint16_t addr) {
 void MMU::write_byte(uint16_t addr, uint8_t val) {
     // RAM enable/disable
     if(0x0000 <= addr && addr <= 0x1FFF){
-        RAM_enabled = (val == 0xA);
+        if(MBC == 1){
+            RAM_enabled = (val == 0xA);
+        }else if(MBC == 2){
+            RAM_enabled = (addr >> 8) & 1 ? !RAM_enabled : RAM_enabled;
+        }else if(MBC == 3){
+            if(val == 0xA){
+                RAM_enabled = true;
+            }else if(val == 0){
+                RAM_enabled = false;
+            }
+        }
     }
 
     // ROM bank select
@@ -98,34 +117,68 @@ void MMU::write_byte(uint16_t addr, uint8_t val) {
             if(ROM_bank == 0 || ROM_bank == 0x20 || ROM_bank == 0x40 || ROM_bank == 0x60){
                 ROM_bank++;
             }
+        }else if(MBC == 2 && ((addr >> 8) & 1)){
+            ROM_bank = val & 0xF;
+        }else if(MBC == 3){
+            ROM_bank = val & 0x7F;
+            if(ROM_bank == 0){
+                ROM_bank++;
+            }
         }
     }
 
-    // MBC1 mode 0: Upper bit ROM bank select
-    // MBC1 mode 1: RAM bank select
-    else if(MBC == 1 && 0x4000 <= addr && addr <= 0x5FFF){
-        if(MBC_mode){
-            RAM_bank = val & 3;
-        }else{
-            // set bits 5 and 6 of ROM bank
-            ROM_bank &= ~(0b11 << 5);
-            ROM_bank |= (val & 0b11) << 5;
+    else if(0x4000 <= addr && addr <= 0x5FFF){
+        if(MBC == 1){
+            // MBC1 mode 1: RAM bank select
+            // MBC1 mode 0: Upper bit ROM bank select
+            if(MBC_mode){
+                RAM_bank = val & 3;
+            }else{
+                // set bits 5 and 6 of ROM bank
+                ROM_bank &= ~(0b11 << 5);
+                ROM_bank |= (val & 0b11) << 5;
+            }
+        }else if(MBC == 3){
+            // Select RAM bank or RTC register depending on value
+            if(val < 8){
+                RAM_bank = val;
+                RTC_index = 0;
+            }else if(0x8 <= val && val <= 0xC){
+                RTC_index = val;
+            }
         }
     }
 
-    // MBC1 mode select
-    else if(MBC == 1 && 0x6000 <= addr && addr <= 0x7FFF){
-        if(val < 2){
-            MBC_mode = val;
+    else if(0x6000 <= addr && addr <= 0x7FFF){
+        // MBC1 mode select
+        if(MBC == 1){
+            if(val < 2){
+                MBC_mode = val;
+            }
         }
+        // MBC3 latching, not implemented since this is a software emulator
+        if(MBC == 3) {}
     }
 
     // RAM banks 0-N
     if(0xA000 <= addr && addr <= 0xBFFF){
-        external_RAM[0x2000 * RAM_bank + (addr - 0xA000)] = val;
+        if(RAM_enabled){
+            if(MBC == 3 && RTC_index != 0){
+                RTC_reg[RTC_index - 8] = val;
+            }else{
+                external_RAM[0x2000 * RAM_bank + (addr - 0xA000)] = val;
+            }
+        }
     }
 
     else{
         gb_memory[addr] = val;
+    }
+}
+
+void MMU::update_RTC() {
+    // TODO increment time by one second
+    for(int i = 0; i < 5; i++){
+        RTC_reg[i] = 0;
     }
 }

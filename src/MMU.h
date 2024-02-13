@@ -24,11 +24,15 @@ public:
     uint16_t ROM_bank = 1;
     uint8_t RAM_bank = 0;
 
+    uint8_t RTC_index = 0;
+    uint8_t RTC_reg[5];
+
     MMU();
     void load_ROM(std::string exec_path, std::string file_name);
 
     uint8_t read_byte(uint16_t addr);
     void write_byte(uint16_t addr, uint8_t val);
+    void update_RTC();
 };
 
 
