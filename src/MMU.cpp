@@ -64,7 +64,7 @@ uint8_t MMU::read_byte(uint16_t addr) {
 
     // RAM banks 0-N
     else if(0xA000 <= addr && addr <= 0xBFFF){
-        // TODO echo MBC2 ram since it only uses bottom 9 bits of addr
+        // TODO echo MBC2 ram since it only uses bottom 9 bits of address
         if(RAM_enabled){
             if(MBC == 3 && RTC_index != 0){
                 return RTC_reg[RTC_index - 8];
@@ -99,7 +99,7 @@ void MMU::write_byte(uint16_t addr, uint8_t val) {
             RAM_enabled = (val == 0xA);
         }else if(MBC == 2){
             RAM_enabled = (addr >> 8) & 1 ? !RAM_enabled : RAM_enabled;
-        }else if(MBC == 3){
+        }else if(MBC == 3 || MBC == 5){
             if(val == 0xA){
                 RAM_enabled = true;
             }else if(val == 0){
@@ -124,6 +124,16 @@ void MMU::write_byte(uint16_t addr, uint8_t val) {
             if(ROM_bank == 0){
                 ROM_bank++;
             }
+        }else if(MBC == 5){
+            if(addr <= 0x2FFF){
+                // set lower 8 bits of ROM bank
+                ROM_bank &= ~0xFF;
+                ROM_bank |= val;
+            }else{
+                // set 9th bit of ROM bank
+                ROM_bank &= ~(1 << 8);
+                ROM_bank |= (val & 1) << 8;
+            }
         }
     }
 
@@ -146,6 +156,8 @@ void MMU::write_byte(uint16_t addr, uint8_t val) {
             }else if(0x8 <= val && val <= 0xC){
                 RTC_index = val;
             }
+        }else if(MBC == 5){
+            RAM_bank = val & 0xF;
         }
     }
 
