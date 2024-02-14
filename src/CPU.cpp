@@ -510,7 +510,7 @@ void CPU::JP_cc_u16(bool cc) {
 
 void CPU::CALL_u16() {
     uint16_t next_adr = program_counter + 2;
-    mmu.write_byte(--stack_pointer, next_adr & 0xFF00);
+    mmu.write_byte(--stack_pointer, (next_adr & 0xFF00) >> 8);
     mmu.write_byte(--stack_pointer, next_adr & 0xFF);
     t_cycles += 8;
     JP_u16();
@@ -542,7 +542,7 @@ void CPU::JR_cc_i8(bool cc) {
 
 void CPU::RET() {
     uint16_t addr = mmu.read_byte(stack_pointer++);
-    addr |= (mmu.read_byte(stack_pointer++) << 2);
+    addr |= (mmu.read_byte(stack_pointer++) << 8);
     program_counter = addr;
     t_cycles += 16;
 }

@@ -9,6 +9,8 @@
 #define TMA_addr 0xFF06
 #define TAC_addr 0xFF07
 
+class MMU;
+
 class Timer {
 public:
     MMU* mmu;

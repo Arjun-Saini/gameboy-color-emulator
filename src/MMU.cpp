@@ -183,6 +183,12 @@ void MMU::write_byte(uint16_t addr, uint8_t val) {
         }
     }
 
+    // Echo RAM
+    else if(0xE000 <= addr && addr <= 0xFDFF){
+        gb_memory[addr] = val;
+        write_byte(addr - 0x2000, val);
+    }
+
     else if(addr == DIV_addr){
         timer->DIV = 0;
     }

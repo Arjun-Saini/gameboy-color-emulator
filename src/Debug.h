@@ -10,6 +10,7 @@ public:
     Debug(CPU* cpu);
     void print_gb_mem(int mode, int width);
     void print_registers();
+    void print_info();
 };
 
 

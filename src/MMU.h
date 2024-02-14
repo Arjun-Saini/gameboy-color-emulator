@@ -7,6 +7,8 @@
 #include <iostream>
 #include "Timer.h"
 
+class Timer;
+
 class MMU {
 public:
     // 64 KiB internal memory

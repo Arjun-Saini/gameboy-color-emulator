@@ -22,6 +22,7 @@ public:
 
     uint8_t t_cycles = 0;
     uint32_t cycles_per_frame = 69905;
+//    uint32_t cycles_per_frame = 1;
 
     CPU();
 
