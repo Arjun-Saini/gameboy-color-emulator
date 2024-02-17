@@ -37,6 +37,9 @@ CPU::CPU() {
     mmu.gb_memory[0xFF4A] = 0x00;
     mmu.gb_memory[0xFF4B] = 0x00;
     mmu.gb_memory[0xFFFF] = 0x00;
+
+    // TODO temporary, force DMG mode to disable speed switching
+    mmu.gb_memory[0xFF4D] = 0xFF;
 }
 
 // Loads value from r2 into r1
@@ -670,9 +673,8 @@ void CPU::HALT() {
             // continue, cause bug where program counter is not incremented on the next instruction
             halt_bug = true;
         }else{
-            // wait for interrupt, but handler is not called
+            // wait for interrupt, but handler is not called since IME is disabled
             halted = true;
-            skip_handler = true;
         }
     }
     // TODO not sure if this is necessary
@@ -958,6 +960,7 @@ uint16_t CPU::next_opcode() {
     uint8_t opcode = mmu.read_byte(program_counter++);
 
     if(halt_bug){
+        std::cout << "HBUG" << std::endl;
         program_counter--;
         halt_bug = false;
     }
@@ -2520,27 +2523,26 @@ void CPU::decode_opcode(uint16_t opcode) {
 void CPU::detect_interrupt() {
     uint8_t IE = mmu.read_byte(0xFFFF);
     uint8_t IF = mmu.read_byte(0xFF0F);
-    if(IME){
-        // VBlank
-        if((IE & IF & 0b1) == 0b1){
-            process_interrupt(&IF, 0);
-        }
-        // LCD
-        else if((IE & IF & 0b10) == 0b10){
-            process_interrupt(&IF, 1);
-        }
-        // Timer
-        else if((IE & IF & 0b100) == 0b100){
-            process_interrupt(&IF, 2);
-        }
-        // Serial
-        else if((IE & IF & 0b1000) == 0b1000){
-            process_interrupt(&IF, 3);
-        }
-        // Joypad
-        else if((IE & IF & 0b10000) == 0b10000){
-            process_interrupt(&IF, 4);
-        }
+
+    // VBlank
+    if((IE & IF & 0b1) == 0b1){
+        process_interrupt(&IF, 0);
+    }
+    // LCD
+    else if((IE & IF & 0b10) == 0b10){
+        process_interrupt(&IF, 1);
+    }
+    // Timer
+    else if((IE & IF & 0b100) == 0b100){
+        process_interrupt(&IF, 2);
+    }
+    // Serial
+    else if((IE & IF & 0b1000) == 0b1000){
+        process_interrupt(&IF, 3);
+    }
+    // Joypad
+    else if((IE & IF & 0b10000) == 0b10000){
+        process_interrupt(&IF, 4);
     }
 }
 
@@ -2549,21 +2551,19 @@ void CPU::process_interrupt(uint8_t* IF, int i) {
     // Wake if halted/stopped
     halted = false;
     stopped = false;
-    if(skip_handler){
-        skip_handler = false;
-        return;
+
+    if(IME){
+        // Clear interrupt flags
+        *IF &= ~(1 << i);
+        mmu.write_byte(0xFF0F, *IF);
+        IME = false;
+
+        // Call interrupt handler
+        mmu.write_byte(--stack_pointer, (program_counter & 0xFF00) >> 8);
+        mmu.write_byte(--stack_pointer, program_counter & 0xFF);
+        program_counter = 0x40 + i * 8;
+        t_cycles += 20;
     }
-
-    // Clear interrupt flags
-    *IF &= ~(1 << i);
-    mmu.write_byte(0xFF0F, *IF);
-    IME = false;
-
-    // Call interrupt handler
-    mmu.write_byte(--stack_pointer, (program_counter & 0xFF00) >> 8);
-    mmu.write_byte(--stack_pointer, program_counter & 0xFF);
-    program_counter = 0x40 + i * 8;
-    t_cycles += 20;
 }
 
 void CPU::request_interrupt(uint8_t interrupt) {

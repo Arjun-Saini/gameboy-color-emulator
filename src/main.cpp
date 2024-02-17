@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
     ppu.renderer = renderer;
 
     bool next_interrupt = false;
-    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/blargg/cpu_instrs/individual/02-interrupts.gb");
+    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/blargg/cpu_instrs/cpu_instrs");
 
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point current_time;
@@ -69,13 +69,19 @@ int main(int argc, char* argv[]) {
         // Enters this block once per frame
         uint8_t frame_count = 0;
         uint8_t TMA_reload_count = 0;
-        bool log = true;
+        bool log = false;
         if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count() > FRAME_MS_DELTA){
             last_time = current_time;
 
-            db.print_registers();
-            db.print_info();
-            std::cout << "___________________" << std::endl;
+//            if(cpu.program_counter == 0xc303){
+//                log = true;
+//            }
+//
+//            if(log){
+//                db.print_registers();
+//                db.print_info();
+//                std::cout << "___________________" << std::endl;
+//            }
 
             // Loops through all t-cycles for this frame
             uint32_t total_cycles = 0;

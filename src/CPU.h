@@ -17,7 +17,6 @@ public:
     bool IME = false;
     bool halted = false;
     bool stopped = false;
-    bool skip_handler = false;
     bool halt_bug = false;
 
     uint8_t t_cycles = 0;
