@@ -18,5 +18,8 @@ add_executable(gameboy_color_emulator src/main.cpp
         src/MMU.cpp
         src/MMU.h
         src/Timer.cpp
-        src/Timer.h)
+        src/Timer.h
+        src/Pixel.h
+        src/Serial.cpp
+        src/Serial.h)
 target_link_libraries(gameboy_color_emulator PRIVATE SDL2::SDL2)

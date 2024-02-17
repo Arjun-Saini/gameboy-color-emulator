@@ -2,6 +2,7 @@
 
 Debug::Debug(CPU *c) {
     cpu = c;
+    Log = std::ofstream("log.txt");
 }
 
 void Debug::print_gb_mem(int mode, int width) {
@@ -66,11 +67,35 @@ void Debug::print_registers() {
 void Debug::print_info() {
     std::cout << std::endl << "MBC: " << int(cpu->mmu.MBC) << std::endl;
     std::cout << "ROM bank: " << int(cpu->mmu.ROM_bank) << "   RAM bank: " << int(cpu->mmu.RAM_bank) << std::endl;
+    std::cout << "IME: " << cpu->IME << std::endl;
     std::cout << "Program counter: " << std::hex << cpu->program_counter << std::endl;
-    std::cout << "Next bytes: " << std::hex
-        << int(cpu->mmu.read_byte(cpu->program_counter)) << " "
-        << int(cpu->mmu.read_byte(cpu->program_counter + 1)) << " "
-        << int(cpu->mmu.read_byte(cpu->program_counter + 2)) << " "
-        << int(cpu->mmu.read_byte(cpu->program_counter + 3)) << std::endl;
+    std::cout << "Next bytes: ";
+    for(int i = 0; i < 8; i++){
+        std::cout << std::hex << int(cpu->mmu.read_byte(cpu->program_counter + i)) << " ";
+    }
+    std::cout << std::endl;
     std::cout << "Stack pointer: " << std::hex << cpu->stack_pointer << std::endl;
+    std::cout << "Stack bytes centered at pointer: ";
+    for(int i = 0; i < 5; i++){
+        std::cout << std::hex << int(cpu->mmu.read_byte(cpu->stack_pointer + i - 2)) << " ";
+    }
+    std::cout << std::endl;
+}
+
+void Debug::doctor_log() {
+    Log << "A:" << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->registers.A);
+    Log << " F:" << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->registers.F);
+    Log << " B:" << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->registers.B);
+    Log << " C:" << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->registers.C);
+    Log << " D:" << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->registers.D);
+    Log << " E:" << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->registers.E);
+    Log << " H:" << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->registers.H);
+    Log << " L:" << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->registers.L);
+    Log << " SP:" << std::setfill('0') << std::setw(4) << std::right << std::hex << int(cpu->stack_pointer);
+    Log << " PC:" << std::setfill('0') << std::setw(4) << std::right << std::hex << int(cpu->program_counter);
+    Log << " PCMEM:" << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->mmu.read_byte(cpu->program_counter)) << ",";
+    Log << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->mmu.read_byte(cpu->program_counter + 1)) << ",";
+    Log << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->mmu.read_byte(cpu->program_counter + 2)) << ",";
+    Log << std::setfill('0') << std::setw(2) << std::right << std::hex << int(cpu->mmu.read_byte(cpu->program_counter + 3)) << std::endl;
+
 }

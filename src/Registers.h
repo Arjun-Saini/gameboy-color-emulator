@@ -36,12 +36,12 @@ public:
     void set_H(uint8_t val);
     void set_C(uint8_t val);
 
-    void b8_carry(int v1, int v2);
-    void b8_carry(int v1, int v2, int v3);
-    void b16_carry(int v1, int v2);
-    void b4_half_carry(int v1, int v2);
-    void b4_half_carry(int v1, int v2, int v3);
-    void b12_half_carry(int v1, int v2);
+    void b8_carry(int v1, int v2, bool add);
+    void b8_carry(int v1, int v2, int v3, bool add);
+    void b16_carry(int v1, int v2, bool add);
+    void b4_half_carry(int v1, int v2, bool add);
+    void b4_half_carry(int v1, int v2, int v3, bool add);
+    void b12_half_carry(int v1, int v2, bool add);
 };
 
 

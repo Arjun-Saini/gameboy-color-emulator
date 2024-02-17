@@ -83,48 +83,48 @@ void Registers::set_C(uint8_t val) {
     F |= (val << 4);
 }
 
-void Registers::b8_carry(int v1, int v2) {
-    if(((v1 & 0xFF) + (v2 & 0xFF)) & 0x100){
+void Registers::b8_carry(int v1, int v2, bool add) {
+    if(((v1 & 0xFF) + (2 * add - 1) * (v2 & 0xFF)) & 0x100){
         set_C(1);
     }else{
         set_C(0);
     }
 }
 
-void Registers::b8_carry(int v1, int v2, int v3) {
-    if(((v1 & 0xFF) + (v2 & 0xFF) + (v3 & 0xFF)) & 0x100){
+void Registers::b8_carry(int v1, int v2, int v3, bool add) {
+    if(((v1 & 0xFF) + (2 * add - 1) * (v2 & 0xFF) + (2 * add - 1) * (v3 & 0xFF)) & 0x100){
         set_C(1);
     }else{
         set_C(0);
     }
 }
 
-void Registers::b16_carry(int v1, int v2) {
-    if(((v1 & 0xFFFF) + (v2 & 0xFFFF)) & 0x10000){
+void Registers::b16_carry(int v1, int v2, bool add) {
+    if(((v1 & 0xFFFF) + (2 * add - 1) * (v2 & 0xFFFF)) & 0x10000){
         set_C(1);
     }else{
         set_C(0);
     }
 }
 
-void Registers::b4_half_carry(int v1, int v2) {
-    if(((v1 & 0xF) + (v2 & 0xF)) & 0x10){
+void Registers::b4_half_carry(int v1, int v2, bool add) {
+    if(((v1 & 0xF) + (2 * add - 1) * (v2 & 0xF)) & 0x10){
         set_H(1);
     }else{
         set_H(0);
     }
 }
 
-void Registers::b4_half_carry(int v1, int v2, int v3) {
-    if(((v1 & 0xF) + (v2 & 0xF) + (v3 & 0xF)) & 0x10){
+void Registers::b4_half_carry(int v1, int v2, int v3, bool add) {
+    if(((v1 & 0xF) + (2 * add - 1) * (v2 & 0xF) + (2 * add - 1) * (v3 & 0xF)) & 0x10){
         set_H(1);
     }else{
         set_H(0);
     }
 }
 
-void Registers::b12_half_carry(int v1, int v2) {
-    if(((v1 & 0xFFF) + (v2 & 0xFFF)) & 0x1000){
+void Registers::b12_half_carry(int v1, int v2, bool add) {
+    if(((v1 & 0xFFF) + (2 * add - 1) * (v2 & 0xFFF)) & 0x1000){
         set_H(1);
     }else{
         set_H(0);

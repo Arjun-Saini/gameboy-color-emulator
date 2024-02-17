@@ -4,11 +4,13 @@
 #include "APU.h"
 #include "Timer.h"
 #include "Debug.h"
+#include "Serial.h"
 #include <chrono>
 
-//#define FRAME_MS_DELTA 16
-#define FRAME_MS_DELTA 1000
+#define FRAME_MS_DELTA 17
 #define TIMER_INTERRUPT 2
+
+#define GRAPHICS_SCALE 2
 
 #define DEBUG_ROM_BANK_0 0
 #define DEBUG_ROM_BANK_N 1
@@ -22,49 +24,82 @@ int main(int argc, char* argv[]) {
     PPU ppu = PPU();
     APU apu = APU();
     Timer timer = Timer();
+    Serial serial = Serial();
     Debug db = Debug(&cpu);
 
     cpu.mmu.timer = &timer;
     timer.mmu = &cpu.mmu;
     ppu.mmu = &cpu.mmu;
+    ppu.cpu = &cpu;
+    serial.mmu = &cpu.mmu;
+    serial.cpu = &cpu;
+
+    // Initialize graphics
+    SDL_Window* window = nullptr;
+    SDL_Renderer* renderer = nullptr;
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_CreateWindowAndRenderer(160 * GRAPHICS_SCALE, 144 * GRAPHICS_SCALE, 0, &window, &renderer);
+    SDL_RenderSetScale(renderer, GRAPHICS_SCALE, GRAPHICS_SCALE);
+
+    ppu.renderer = renderer;
 
     bool next_interrupt = false;
-    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/blargg/cpu_instrs/cpu_instrs");
+    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/blargg/cpu_instrs/individual/03-op sp,hl");
 
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point current_time;
-    while(true){
+
+    int instructions = 1;
+    bool is_running = true;
+    while(is_running){
         current_time = std::chrono::steady_clock::now();
 
-        // TODO SDL event loop and inputs
+        // TODO process key inputs
+        SDL_Event e;
+        while(SDL_PollEvent(&e)){
+            if(e.type == SDL_QUIT){
+                is_running = false;
+            }else if(e.type == SDL_KEYDOWN){
+
+            }else if(e.type == SDL_KEYUP){
+
+            }
+        }
 
         // Enters this block once per frame
         uint8_t frame_count = 0;
         uint8_t TMA_reload_count = 0;
+        bool log = true;
         if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count() > FRAME_MS_DELTA){
             last_time = current_time;
 
             // Loops through all t-cycles for this frame
             uint32_t total_cycles = 0;
             while(total_cycles < cpu.cycles_per_frame){
-//                db.print_gb_mem(DEBUG_OAM, 64);
-//                db.print_info();
-//                std::cout << "____________________________" << std::endl;
-
                 if(cpu.halted || cpu.stopped){
                     // Fake CPU cycle
                     cpu.t_cycles++;
                 }else{
+                    db.doctor_log();
+
+//                    if(instructions >= 31685 - 20 && instructions <= 31685 + 20){
+//                        std::cout << "INSTRUCTION: " << instructions << std::endl;
+//                        db.print_registers();
+//                        db.print_info();
+//                        std::cout << "___________________" << std::endl;
+//                    }
+
                     uint16_t opcode = cpu.next_opcode();
                     cpu.decode_opcode(opcode);
+                    instructions++;
                 }
 
                 total_cycles += cpu.t_cycles;
 
-                // Advances PPU and APU to catch up with CPU
+                // Advances peripheral components to catch up with CPU
                 for(; cpu.t_cycles > 0; cpu.t_cycles--){
                     if(!cpu.stopped){
-                        ppu.tick();
+//                        ppu.tick();
                         apu.tick();
 
                         if(TMA_reload_count > 0){
@@ -103,6 +138,8 @@ int main(int argc, char* argv[]) {
                 frame_count = 0;
                 cpu.mmu.update_RTC();
             }
+
+            SDL_RenderPresent(renderer);
         }
     }
 

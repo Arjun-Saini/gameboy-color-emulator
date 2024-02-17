@@ -174,8 +174,8 @@ void CPU::LD_pu16_SP() {
 void CPU::LD_HL_SPi8() {
     int8_t i8 = mmu.read_byte(program_counter++);
     registers.set_HL(stack_pointer + i8);
-    registers.b8_carry(stack_pointer, i8);
-    registers.b4_half_carry(stack_pointer, i8);
+    registers.b8_carry(stack_pointer, i8, true);
+    registers.b4_half_carry(stack_pointer, i8, true);
     registers.set_Z(0);
     registers.set_N(0);
     t_cycles += 12;
@@ -187,47 +187,50 @@ void CPU::LD_SP_HL() {
 }
 
 void CPU::ADC_A_r8(uint8_t r) {
-    registers.b8_carry(registers.A, r, registers.get_C());
-    registers.b4_half_carry(registers.A, r, registers.get_C());
-    registers.set_N(0);
+    uint8_t old_A = registers.A;
     registers.A += r + registers.get_C();
+    registers.b4_half_carry(old_A, r, registers.get_C(), true);
+    registers.b8_carry(old_A, r, registers.get_C(), true);
+    registers.set_N(0);
     registers.set_Z(registers.A == 0);
     t_cycles += 4;
 }
 
 void CPU::ADC_A_pHL() {
     uint8_t pHL = mmu.read_byte(registers.get_HL());
-    registers.b8_carry(registers.A, pHL, registers.get_C());
-    registers.b4_half_carry(registers.A, pHL, registers.get_C());
-    registers.set_N(0);
+    uint8_t old_A = registers.A;
     registers.A += pHL + registers.get_C();
+    registers.b4_half_carry(old_A, pHL, registers.get_C(), true);
+    registers.b8_carry(old_A, pHL, registers.get_C(), true);
+    registers.set_N(0);
     registers.set_Z(registers.A == 0);
     t_cycles += 8;
 }
 
 void CPU::ADC_A_u8() {
     uint8_t u8 = mmu.read_byte(program_counter++);
-    registers.b8_carry(registers.A, u8, registers.get_C());
-    registers.b4_half_carry(registers.A, u8, registers.get_C());
-    registers.set_N(0);
+    uint8_t old_A = registers.A;
     registers.A += u8 + registers.get_C();
+    registers.b4_half_carry(old_A, u8, registers.get_C(), true);
+    registers.b8_carry(old_A, u8, registers.get_C(), true);
+    registers.set_N(0);
     registers.set_Z(registers.A == 0);
     t_cycles += 8;
 }
 
 void CPU::ADD_A_r8(uint8_t r) {
-    registers.b8_carry(registers.A, r);
-    registers.b4_half_carry(registers.A, r);
+    registers.b8_carry(registers.A, r, true);
+    registers.b4_half_carry(registers.A, r, true);
     registers.set_N(0);
-    registers.A += + r;
+    registers.A += r;
     registers.set_Z(registers.A == 0);
     t_cycles += 4;
 }
 
 void CPU::ADD_A_pHL() {
     uint8_t pHL = mmu.read_byte(registers.get_HL());
-    registers.b8_carry(registers.A, pHL);
-    registers.b4_half_carry(registers.A, pHL);
+    registers.b8_carry(registers.A, pHL, true);
+    registers.b4_half_carry(registers.A, pHL, true);
     registers.set_N(0);
     registers.A += pHL;
     registers.set_Z(registers.A == 0);
@@ -236,8 +239,8 @@ void CPU::ADD_A_pHL() {
 
 void CPU::ADD_A_u8() {
     uint8_t u8 = mmu.read_byte(program_counter++);
-    registers.b8_carry(registers.A, u8);
-    registers.b4_half_carry(registers.A, u8);
+    registers.b8_carry(registers.A, u8, true);
+    registers.b4_half_carry(registers.A, u8, true);
     registers.set_N(0);
     registers.A += u8;
     registers.set_Z(registers.A == 0);
@@ -245,8 +248,8 @@ void CPU::ADD_A_u8() {
 }
 
 void CPU::ADD_HL_r16(uint16_t r) {
-    registers.b16_carry(registers.get_HL(), r);
-    registers.b12_half_carry(registers.get_HL(), r);
+    registers.b16_carry(registers.get_HL(), r, true);
+    registers.b12_half_carry(registers.get_HL(), r, true);
     registers.set_N(0);
     registers.set_HL(registers.get_HL() + r);
     t_cycles += 8;
@@ -254,8 +257,8 @@ void CPU::ADD_HL_r16(uint16_t r) {
 
 void CPU::ADD_SP_i8() {
     int8_t i8 = mmu.read_byte(program_counter++);
-    registers.b8_carry(stack_pointer, i8);
-    registers.b4_half_carry(stack_pointer, i8);
+    registers.b8_carry(stack_pointer, i8, true);
+    registers.b4_half_carry(stack_pointer, i8, true);
     registers.set_Z(0);
     registers.set_N(0);
     stack_pointer += i8;
@@ -291,8 +294,8 @@ void CPU::AND_A_u8() {
 
 void CPU::CP_A_r8(uint8_t r) {
     registers.set_N(1);
-    registers.b8_carry(registers.A, -r);
-    registers.b4_half_carry(registers.A, -r);
+    registers.b8_carry(registers.A, r, false);
+    registers.b4_half_carry(registers.A, r, false);
     registers.set_Z(registers.A - r == 0);
     t_cycles += 4;
 }
@@ -300,8 +303,8 @@ void CPU::CP_A_r8(uint8_t r) {
 void CPU::CP_A_pHL() {
     uint8_t pHL = mmu.read_byte(registers.get_HL());
     registers.set_N(1);
-    registers.b8_carry(registers.A, -pHL);
-    registers.b4_half_carry(registers.A, -pHL);
+    registers.b8_carry(registers.A, pHL, false);
+    registers.b4_half_carry(registers.A, pHL, false);
     registers.set_Z(registers.A - pHL == 0);
     t_cycles += 8;
 }
@@ -309,14 +312,14 @@ void CPU::CP_A_pHL() {
 void CPU::CP_A_u8() {
     uint8_t u8 = mmu.read_byte(program_counter++);
     registers.set_N(1);
-    registers.b8_carry(registers.A, -u8);
-    registers.b4_half_carry(registers.A, -u8);
+    registers.b8_carry(registers.A, u8, false);
+    registers.b4_half_carry(registers.A, u8, false);
     registers.set_Z(registers.A - u8 == 0);
     t_cycles += 8;
 }
 
 void CPU::DEC_r8(uint8_t* r) {
-    registers.b4_half_carry(*r, *r - 1);
+    registers.b4_half_carry(*r, 1, false);
     (*r)--;
     registers.set_Z(*r == 0);
     registers.set_N(1);
@@ -325,8 +328,8 @@ void CPU::DEC_r8(uint8_t* r) {
 
 void CPU::DEC_pHL() {
     uint8_t pHL = mmu.read_byte(registers.get_HL());
-    registers.b4_half_carry(pHL, pHL - 1);
-    registers.set_HL(--pHL);
+    registers.b4_half_carry(pHL, 1, false);
+    mmu.write_byte(registers.get_HL(), --pHL);
     registers.set_Z(pHL == 0);
     registers.set_N(1);
     t_cycles += 12;
@@ -340,13 +343,13 @@ void CPU::DEC_SP() {
 void CPU::DEC_r16(uint8_t* r1, uint8_t* r2) {
     uint16_t r16 = (*r1 << 8) | *r2;
     r16--;
-    *r1 = r16 & 0xFF00;
+    *r1 = (r16 & 0xFF00) >> 8;
     *r2 = r16 & 0xFF;
     t_cycles += 8;
 }
 
 void CPU::INC_r8(uint8_t* r) {
-    registers.b4_half_carry(*r, *r + 1);
+    registers.b4_half_carry(*r, 1, true);
     (*r)++;
     registers.set_Z(*r == 0);
     registers.set_N(0);
@@ -355,8 +358,8 @@ void CPU::INC_r8(uint8_t* r) {
 
 void CPU::INC_pHL() {
     uint8_t pHL = mmu.read_byte(registers.get_HL());
-    registers.b4_half_carry(pHL, pHL + 1);
-    registers.set_HL(++pHL);
+    registers.b4_half_carry(pHL, 1, true);
+    mmu.write_byte(registers.get_HL(), ++pHL);
     registers.set_Z(pHL == 0);
     registers.set_N(0);
     t_cycles += 12;
@@ -370,7 +373,7 @@ void CPU::INC_SP() {
 void CPU::INC_r16(uint8_t* r1, uint8_t* r2) {
     uint16_t r16 = (*r1 << 8) | *r2;
     r16++;
-    *r1 = r16 & 0xFF00;
+    *r1 = (r16 & 0xFF00) >> 8;
     *r2 = r16 & 0xFF;
     t_cycles += 8;
 }
@@ -403,8 +406,8 @@ void CPU::OR_A_u8() {
 }
 
 void CPU::SBC_A_r8(uint8_t r) {
-    registers.b8_carry(registers.A, -r, -registers.get_C());
-    registers.b4_half_carry(registers.A, -r, -registers.get_C());
+    registers.b8_carry(registers.A, r, registers.get_C(), false);
+    registers.b4_half_carry(registers.A, r, registers.get_C(), false);
     registers.A -= r + registers.get_C();
     registers.set_Z(registers.A == 0);
     registers.set_N(1);
@@ -413,9 +416,10 @@ void CPU::SBC_A_r8(uint8_t r) {
 
 void CPU::SBC_A_pHL() {
     uint8_t pHL = mmu.read_byte(registers.get_HL());
-    registers.b8_carry(registers.A, -pHL, -registers.get_C());
-    registers.b4_half_carry(registers.A, -pHL, -registers.get_C());
+    uint8_t old_A = registers.A;
     registers.A -= pHL + registers.get_C();
+    registers.b4_half_carry(old_A, pHL, registers.get_C(), false);
+    registers.b8_carry(old_A, pHL, registers.get_C(), false);
     registers.set_Z(registers.A == 0);
     registers.set_N(1);
     t_cycles += 8;
@@ -423,17 +427,18 @@ void CPU::SBC_A_pHL() {
 
 void CPU::SBC_A_u8() {
     uint8_t u8 = mmu.read_byte(program_counter++);
-    registers.b8_carry(registers.A, -u8, -registers.get_C());
-    registers.b4_half_carry(registers.A, -u8, -registers.get_C());
+    uint8_t old_A = registers.A;
     registers.A -= u8 + registers.get_C();
+    registers.b4_half_carry(old_A, u8, registers.get_C(), false);
+    registers.b8_carry(old_A, u8, registers.get_C(), false);
     registers.set_Z(registers.A == 0);
     registers.set_N(1);
     t_cycles += 8;
 }
 
 void CPU::SUB_A_r8(uint8_t r) {
-    registers.b8_carry(registers.A, -r);
-    registers.b4_half_carry(registers.A, -r);
+    registers.b8_carry(registers.A, r, false);
+    registers.b4_half_carry(registers.A, r, false);
     registers.A -= r;
     registers.set_Z(registers.A == 0);
     registers.set_N(1);
@@ -442,8 +447,8 @@ void CPU::SUB_A_r8(uint8_t r) {
 
 void CPU::SUB_A_pHL() {
     uint8_t pHL = mmu.read_byte(registers.get_HL());
-    registers.b8_carry(registers.A, -pHL);
-    registers.b4_half_carry(registers.A, -pHL);
+    registers.b8_carry(registers.A, pHL, false);
+    registers.b4_half_carry(registers.A, pHL, false);
     registers.A -= pHL;
     registers.set_Z(registers.A == 0);
     registers.set_N(1);
@@ -452,8 +457,8 @@ void CPU::SUB_A_pHL() {
 
 void CPU::SUB_A_u8() {
     uint8_t u8 = mmu.read_byte(program_counter++);
-    registers.b8_carry(registers.A, -u8);
-    registers.b4_half_carry(registers.A, -u8);
+    registers.b8_carry(registers.A, u8, false);
+    registers.b4_half_carry(registers.A, u8, false);
     registers.A -= u8;
     registers.set_Z(registers.A == 0);
     registers.set_N(1);
@@ -526,7 +531,7 @@ void CPU::CALL_cc_u16(bool cc) {
 }
 
 void CPU::JR_i8() {
-    int8_t i8 = mmu.read_byte(program_counter);
+    int8_t i8 = mmu.read_byte(program_counter++);
     program_counter += i8;
     t_cycles += 12;
 }
@@ -563,7 +568,7 @@ void CPU::RETI() {
 
 void CPU::RST_vec(uint8_t v) {
     uint16_t next_adr = program_counter + 2;
-    mmu.write_byte(--stack_pointer, next_adr & 0xFF00);
+    mmu.write_byte(--stack_pointer, (next_adr & 0xFF00) >> 8);
     mmu.write_byte(--stack_pointer, next_adr & 0xFF);
     program_counter = v;
     t_cycles += 16;
@@ -593,7 +598,7 @@ void CPU::PUSH_AF() {
 }
 
 void CPU::PUSH_r16(uint16_t r) {
-    mmu.write_byte(--stack_pointer, r & 0xFF00);
+    mmu.write_byte(--stack_pointer, (r & 0xFF00) >> 8);
     mmu.write_byte(--stack_pointer, r & 0xFF);
     t_cycles += 16;
 }
@@ -2550,7 +2555,7 @@ void CPU::process_interrupt(uint8_t* IF, int i) {
     IME = false;
 
     // Call interrupt handler
-    mmu.write_byte(--stack_pointer, program_counter & 0xFF00);
+    mmu.write_byte(--stack_pointer, (program_counter & 0xFF00) >> 8);
     mmu.write_byte(--stack_pointer, program_counter & 0xFF);
     program_counter = 0x40 + i * 8;
     t_cycles += 20;

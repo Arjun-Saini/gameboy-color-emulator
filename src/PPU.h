@@ -6,6 +6,8 @@
 #include <iostream>
 #include <vector>
 #include "MMU.h"
+#include "CPU.h"
+#include "Pixel.h"
 
 #define OAM_START_ADDRESS 0xFE00
 
@@ -30,22 +32,38 @@
 class PPU {
 public:
     MMU* mmu;
+    CPU* cpu;
+    SDL_Renderer* renderer;
 
     uint32_t cycles = 0;
     uint8_t scanline = 0;
     uint16_t scan_pos = 0;
-    bool drawing = false;
+    uint8_t tile_ID;
+    uint8_t tile_data_low;
+    uint8_t tile_data_high;
+    uint8_t window_line_counter = 0;
+    uint8_t pixel_x_counter = 0;
+    uint8_t mode;
+
+    bool drawing = true;
     bool h_blank = false;
     bool v_blank = false;
+    bool draw_background = true;
+    bool window_on_scanline = false;
 
-    std::queue<uint8_t> background_fifo;
-    std::queue<uint8_t> sprite_fifo;
+    std::queue<Pixel> background_fifo;
+    uint8_t background_fifo_stage = 0;
+    uint8_t background_fifo_X = 0;
+
+    std::queue<Pixel> sprite_fifo;
     std::vector<uint8_t> sprite_buffer;
 
-    PPU();
     void tick();
     void OAM_scan();
     void draw_pixels();
+    void set_hex_color(uint32_t hex_color);
+    void background_fetch();
+    void sprite_fetch();
 };
 
 
