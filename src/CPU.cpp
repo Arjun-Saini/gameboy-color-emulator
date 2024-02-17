@@ -406,9 +406,10 @@ void CPU::OR_A_u8() {
 }
 
 void CPU::SBC_A_r8(uint8_t r) {
-    registers.b8_carry(registers.A, r, registers.get_C(), false);
-    registers.b4_half_carry(registers.A, r, registers.get_C(), false);
+    uint8_t old_A = registers.A;
     registers.A -= r + registers.get_C();
+    registers.b4_half_carry(old_A, r, registers.get_C(), false);
+    registers.b8_carry(old_A, r, registers.get_C(), false);
     registers.set_Z(registers.A == 0);
     registers.set_N(1);
     t_cycles += 4;
@@ -567,7 +568,7 @@ void CPU::RETI() {
 }
 
 void CPU::RST_vec(uint8_t v) {
-    uint16_t next_adr = program_counter + 2;
+    uint16_t next_adr = program_counter;
     mmu.write_byte(--stack_pointer, (next_adr & 0xFF00) >> 8);
     mmu.write_byte(--stack_pointer, next_adr & 0xFF);
     program_counter = v;
@@ -606,7 +607,11 @@ void CPU::PUSH_r16(uint16_t r) {
 void CPU::CCF() {
     registers.set_N(0);
     registers.set_H(0);
-    registers.set_C(~registers.get_C());
+    if(registers.get_C()){
+        registers.set_C(0);
+    }else{
+        registers.set_C(1);
+    }
     t_cycles += 4;
 }
 
@@ -958,7 +963,7 @@ uint16_t CPU::next_opcode() {
     }
 
     if(opcode == 0xCB){
-        return (opcode << 8) | next_opcode();
+        return (opcode << 8) | mmu.read_byte(program_counter++);
     }
     return opcode;
 }
@@ -1936,19 +1941,19 @@ void CPU::decode_opcode(uint16_t opcode) {
                 LD_r8_r8(&registers.B, registers.B);
                 break;
             case 0x41:
-                LD_r8_r8(&registers.C, registers.B);
+                LD_r8_r8(&registers.B, registers.C);
                 break;
             case 0x42:
-                LD_r8_r8(&registers.D, registers.B);
+                LD_r8_r8(&registers.B, registers.D);
                 break;
             case 0x43:
-                LD_r8_r8(&registers.E, registers.B);
+                LD_r8_r8(&registers.B, registers.E);
                 break;
             case 0x44:
-                LD_r8_r8(&registers.H, registers.B);
+                LD_r8_r8(&registers.B, registers.H);
                 break;
             case 0x45:
-                LD_r8_r8(&registers.L, registers.B);
+                LD_r8_r8(&registers.B, registers.L);
                 break;
             case 0x46:
                 LD_r8_pHL(&registers.B);

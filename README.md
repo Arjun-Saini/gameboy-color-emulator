@@ -14,6 +14,10 @@ https://rgbds.gbdev.io/docs/v0.7.0/gbz80.7
 
 https://izik1.github.io/gbops/index.html
 
+##### Opcode debugging help
+
+https://robertheaton.com/gameboy-doctor/
+
 ##### PPU information
 
 https://hacktix.github.io/GBEDG/

@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
     ppu.renderer = renderer;
 
     bool next_interrupt = false;
-    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/blargg/cpu_instrs/individual/03-op sp,hl");
+    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/blargg/cpu_instrs/individual/02-interrupts.gb");
 
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point current_time;
@@ -73,6 +73,10 @@ int main(int argc, char* argv[]) {
         if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count() > FRAME_MS_DELTA){
             last_time = current_time;
 
+            db.print_registers();
+            db.print_info();
+            std::cout << "___________________" << std::endl;
+
             // Loops through all t-cycles for this frame
             uint32_t total_cycles = 0;
             while(total_cycles < cpu.cycles_per_frame){
@@ -80,14 +84,7 @@ int main(int argc, char* argv[]) {
                     // Fake CPU cycle
                     cpu.t_cycles++;
                 }else{
-                    db.doctor_log();
-
-//                    if(instructions >= 31685 - 20 && instructions <= 31685 + 20){
-//                        std::cout << "INSTRUCTION: " << instructions << std::endl;
-//                        db.print_registers();
-//                        db.print_info();
-//                        std::cout << "___________________" << std::endl;
-//                    }
+//                    db.doctor_log();
 
                     uint16_t opcode = cpu.next_opcode();
                     cpu.decode_opcode(opcode);
