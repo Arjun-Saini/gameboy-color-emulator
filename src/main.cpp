@@ -4,13 +4,12 @@
 #include "APU.h"
 #include "Timer.h"
 #include "Debug.h"
-#include "Serial.h"
 #include <chrono>
 
 #define FRAME_MS_DELTA 17
 #define TIMER_INTERRUPT 2
 
-#define GRAPHICS_SCALE 2
+#define GRAPHICS_SCALE 3
 
 #define DEBUG_ROM_BANK_0 0
 #define DEBUG_ROM_BANK_N 1
@@ -24,15 +23,12 @@ int main(int argc, char* argv[]) {
     PPU ppu = PPU();
     APU apu = APU();
     Timer timer = Timer();
-    Serial serial = Serial();
     Debug db = Debug(&cpu);
 
     cpu.mmu.timer = &timer;
     timer.mmu = &cpu.mmu;
     ppu.mmu = &cpu.mmu;
     ppu.cpu = &cpu;
-    serial.mmu = &cpu.mmu;
-    serial.cpu = &cpu;
 
     // Initialize graphics
     SDL_Window* window = nullptr;
@@ -73,15 +69,8 @@ int main(int argc, char* argv[]) {
         if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count() > FRAME_MS_DELTA){
             last_time = current_time;
 
-//            if(cpu.program_counter == 0xc303){
-//                log = true;
-//            }
-//
-//            if(log){
-//                db.print_registers();
-//                db.print_info();
-//                std::cout << "___________________" << std::endl;
-//            }
+//            db.print_gb_mem(DEBUG_VRAM, 32);
+//            std::cout << "___________________" << std::endl;
 
             // Loops through all t-cycles for this frame
             uint32_t total_cycles = 0;
@@ -102,7 +91,7 @@ int main(int argc, char* argv[]) {
                 // Advances peripheral components to catch up with CPU
                 for(; cpu.t_cycles > 0; cpu.t_cycles--){
                     if(!cpu.stopped){
-//                        ppu.tick();
+                        ppu.tick();
                         apu.tick();
 
                         if(TMA_reload_count > 0){

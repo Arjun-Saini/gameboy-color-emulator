@@ -17,6 +17,7 @@ void PPU::tick() {
             h_blank = false;
             drawing = true;
             background_fifo_X = 0;
+            background_fifo_stage = 0;
             if(window_on_scanline){
                 window_line_counter++;
                 window_on_scanline = false;
@@ -106,7 +107,6 @@ void PPU::draw_pixels() {
                 break;
             case 3:
                 hex_color = 0x000000;
-                std::cout << "BLACK" << std::endl;
                 break;
         }
 
@@ -210,9 +210,9 @@ void PPU::background_fetch() {
                     p.color = (((tile_data_high >> i) & 1) << 1) | ((tile_data_low >> i) & 1);
                     p.palette = BGP;
                     background_fifo.push(p);
+                    background_fifo_X++;
                 }
                 background_fifo_stage = 0;
-                background_fifo_X++;
             }
             break;
     }

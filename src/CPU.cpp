@@ -38,8 +38,9 @@ CPU::CPU() {
     mmu.gb_memory[0xFF4B] = 0x00;
     mmu.gb_memory[0xFFFF] = 0x00;
 
-    // TODO temporary, force DMG mode to disable speed switching
+    // TODO temporary, force DMG mode to disable speed switching and forces joypad off
     mmu.gb_memory[0xFF4D] = 0xFF;
+    mmu.gb_memory[0xFF00] = 0xFF;
 }
 
 // Loads value from r2 into r1
@@ -71,10 +72,10 @@ void CPU::LD_pHL_r8(uint8_t r) {
 }
 
 // Loads value from next byte into byte pointed to by HL
-void CPU::LD_pHL_n8() {
+void CPU::LD_pHL_u8() {
     uint8_t u8 = mmu.read_byte(program_counter++);
     mmu.write_byte(registers.get_HL(), u8);
-    t_cycles += 8;
+    t_cycles += 12;
 }
 
 // Loads value from byte pointed to by HL into r
@@ -1911,7 +1912,7 @@ void CPU::decode_opcode(uint16_t opcode) {
                 DEC_pHL();
                 break;
             case 0x36:
-                LD_pHL_n8();
+                LD_pHL_u8();
                 break;
             case 0x37:
                 SCF();

@@ -37,7 +37,7 @@ public:
     void LD_r8_u8(uint8_t* r);
     void LD_r16_u16(uint8_t* r1, uint8_t* r2);
     void LD_pHL_r8(uint8_t r);
-    void LD_pHL_n8();
+    void LD_pHL_u8();
     void LD_r8_pHL(uint8_t* r);
     void LD_pr16_A(uint16_t r);
     void LD_pu16_A();
