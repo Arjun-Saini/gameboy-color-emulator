@@ -34,6 +34,7 @@ void PPU::tick() {
             sprite_fifo = {};
             sprite_buffer = {};
             draw_background = true;
+            window_reset_on_scanline = false;
 
             if(window_on_scanline){
                 window_line_counter++;
@@ -58,9 +59,10 @@ void PPU::tick() {
             h_blank = true;
         }
     }else{
+        window_line_counter = 0;
+
         mmu->gb_memory[LCD_STATUS] &= ~0b11;
         mmu->gb_memory[LCD_STATUS] |= 0b01;
-        window_line_counter = 0;
         v_blank = true;
     }
 
@@ -97,7 +99,7 @@ void PPU::OAM_scan() {
 
 void PPU::draw_pixels() {
     background_fetch();
-    sprite_fetch();
+//    sprite_fetch();
 
     if(!background_fifo.empty() && sprite_fetch_stage == 0){
         Pixel p = background_fifo.front();
@@ -149,8 +151,12 @@ void PPU::draw_pixels() {
 
         if(((mmu->read_byte(LCD_CONTROL) >> 5) & 1) && WY_LY && LX >= mmu->read_byte(WX) - 7){
             background_fetch_stage = 0;
-            background_fetch_X = 0;
             draw_background = false;
+
+            if(!window_reset_on_scanline){
+                background_fetch_X = 0;
+                window_reset_on_scanline = true;
+            }
         }
     }
 }
@@ -177,6 +183,8 @@ void PPU::background_fetch() {
                 tile_addr += ((background_fetch_X + mmu->read_byte(SCX)) & 0xFF) / 8;
                 tile_addr += (((mmu->read_byte(LY) + mmu->read_byte(SCY)) & 0xFF) / 8) << 5;
             }else{
+                window_on_scanline = true;
+
                 // fetch window ID
                 if((mmu->read_byte(LCD_CONTROL) >> 6) & 1){
                     tile_addr = 0x9C00;
@@ -240,11 +248,12 @@ void PPU::background_fetch() {
             if(background_fifo.empty()){
                 for(int i = 7; i >= 0; i--){
                     Pixel p = Pixel();
-//                    if(mmu->read_byte(LCD_CONTROL) & 1){
+                    if(mmu->read_byte(LCD_CONTROL) & 1){
                         p.color = (((tile_data_high >> i) & 1) << 1) | ((tile_data_low >> i) & 1);
-//                    }else{
-//                        p.color = 0;
-//                    }
+                    }else{
+                        p.color = 0;
+                    }
+
                     p.palette = BGP;
                     background_fifo.push(p);
                     background_fetch_X++;

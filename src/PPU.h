@@ -60,6 +60,7 @@ public:
     bool WY_LY = false;
     bool prev_stat_interrupt = false;
     bool stat_interrupt = false;
+    bool window_reset_on_scanline = false;
 
     std::queue<Pixel> background_fifo;
     uint8_t background_fetch_stage = 0;

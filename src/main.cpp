@@ -77,8 +77,7 @@ int main(int argc, char* argv[]) {
             uint32_t total_cycles = 0;
             while(total_cycles < cpu.cycles_per_frame){
 
-                uint8_t status = cpu.mmu.read_byte(LCD_STATUS);
-                uint8_t lyc = cpu.mmu.read_byte(LY_COMPARE);
+                uint8_t wlc = ppu.window_line_counter;
 
                 if(cpu.halted || cpu.stopped){
                     // Fake CPU cycle
