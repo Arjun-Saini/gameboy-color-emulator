@@ -41,6 +41,8 @@ CPU::CPU() {
     // TODO temporary, force DMG mode to disable speed switching and forces joypad off
     mmu.gb_memory[0xFF4D] = 0xFF;
     mmu.gb_memory[0xFF00] = 0xFF;
+
+    mmu.gb_memory[0xFF41] = 0x80;
 }
 
 // Loads value from r2 into r1
@@ -679,7 +681,7 @@ void CPU::HALT() {
         }
     }
     // TODO not sure if this is necessary
-//    t_cycles += 4;
+    t_cycles += 4;
 }
 
 void CPU::NOP() {
@@ -961,7 +963,6 @@ uint16_t CPU::next_opcode() {
     uint8_t opcode = mmu.read_byte(program_counter++);
 
     if(halt_bug){
-        std::cout << "HBUG" << std::endl;
         program_counter--;
         halt_bug = false;
     }

@@ -1,5 +1,5 @@
 # gameboy color emulator
- Emulates the Nintendo Game Boy Color (GBC) which can run games using MBC1, MBC2, and MBC3 cartriges.
+ Emulates the Nintendo Game Boy Color (GBC) which can run games using MBC1, MBC2, MBC3 and MBC5 cartridges.
 ___
 ## Resources
 ##### Gameboy pandocs:
@@ -14,11 +14,11 @@ https://rgbds.gbdev.io/docs/v0.7.0/gbz80.7
 
 https://izik1.github.io/gbops/index.html
 
-##### Opcode debugging help
+##### Opcode debugger:
 
 https://robertheaton.com/gameboy-doctor/
 
-##### PPU information
+##### PPU information:
 
 https://hacktix.github.io/GBEDG/
 

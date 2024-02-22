@@ -38,25 +38,36 @@ public:
     uint32_t cycles = 0;
     uint8_t scanline = 0;
     uint16_t scan_pos = 0;
+
     uint8_t tile_ID;
     uint8_t tile_data_low;
     uint8_t tile_data_high;
+
     uint8_t window_line_counter = 0;
-    uint8_t pixel_x_counter = 0;
-    uint8_t mode;
+    uint8_t background_fetch_X = 0;
+    uint8_t discard_pixels = 0;
+
+    uint8_t sprite_tile_ID;
+    uint8_t sprite_flags;
+    uint8_t sprite_tile_data_low;
+    uint8_t sprite_tile_data_high;
 
     bool drawing = true;
     bool h_blank = false;
     bool v_blank = false;
     bool draw_background = true;
     bool window_on_scanline = false;
+    bool WY_LY = false;
+    bool prev_stat_interrupt = false;
+    bool stat_interrupt = false;
 
     std::queue<Pixel> background_fifo;
-    uint8_t background_fifo_stage = 0;
-    uint8_t background_fifo_X = 0;
+    uint8_t background_fetch_stage = 0;
+    uint8_t LX = 0;
 
     std::queue<Pixel> sprite_fifo;
     std::vector<uint8_t> sprite_buffer;
+    uint8_t sprite_fetch_stage = 0;
 
     void tick();
     void OAM_scan();

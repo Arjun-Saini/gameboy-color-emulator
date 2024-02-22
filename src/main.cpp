@@ -40,11 +40,14 @@ int main(int argc, char* argv[]) {
     ppu.renderer = renderer;
 
     bool next_interrupt = false;
-    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/blargg/cpu_instrs/cpu_instrs");
+//    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/blargg/interrupt_time/interrupt_time");
+    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/dmg-acid2/dmg-acid2");
+
 
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point current_time;
 
+    bool log = false;
     int instructions = 1;
     bool is_running = true;
     while(is_running){
@@ -65,25 +68,35 @@ int main(int argc, char* argv[]) {
         // Enters this block once per frame
         uint8_t frame_count = 0;
         uint8_t TMA_reload_count = 0;
-        bool log = false;
         if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count() > FRAME_MS_DELTA){
             last_time = current_time;
 
-//            db.print_gb_mem(DEBUG_VRAM, 32);
-//            std::cout << "___________________" << std::endl;
+            ppu.WY_LY = false;
 
             // Loops through all t-cycles for this frame
             uint32_t total_cycles = 0;
             while(total_cycles < cpu.cycles_per_frame){
+
+                uint8_t status = cpu.mmu.read_byte(LCD_STATUS);
+                uint8_t lyc = cpu.mmu.read_byte(LY_COMPARE);
+
                 if(cpu.halted || cpu.stopped){
                     // Fake CPU cycle
                     cpu.t_cycles++;
                 }else{
-//                    db.doctor_log();
-
                     uint16_t opcode = cpu.next_opcode();
                     cpu.decode_opcode(opcode);
                     instructions++;
+
+                    // Delays EI by one instruction
+                    if(next_interrupt){
+                        cpu.IME = true;
+                        next_interrupt = false;
+                    }
+                    if(cpu.enable_interrupt){
+                        next_interrupt = true;
+                        cpu.enable_interrupt = false;
+                    }
                 }
 
                 total_cycles += cpu.t_cycles;
@@ -111,16 +124,6 @@ int main(int argc, char* argv[]) {
                             TMA_reload_count = 4;
                         }
                     }
-                }
-
-                // Delays EI by one instruction
-                if(next_interrupt){
-                    cpu.IME = true;
-                    next_interrupt = false;
-                }
-                if(cpu.enable_interrupt){
-                    next_interrupt = true;
-                    cpu.enable_interrupt = false;
                 }
 
                 cpu.detect_interrupt();

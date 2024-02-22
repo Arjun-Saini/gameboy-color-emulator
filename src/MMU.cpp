@@ -57,10 +57,6 @@ void MMU::load_ROM(std::string exec_path, std::string file_name) {
 }
 
 uint8_t MMU::read_byte(uint16_t addr) {
-//    if(addr == 0xFF44){
-//        return 0x90;
-//    }
-
     // ROM banks 1-N
     if(0x4000 <= addr && addr <= 0x7FFF){
         return cartridge_memory[0x4000 * ROM_bank + (addr - 0x4000)];
@@ -206,6 +202,11 @@ void MMU::write_byte(uint16_t addr, uint8_t val) {
     else if(addr == 0xFF02 && val == 0x81){
         char character = char(read_byte(0xFF01));
         std::cout << character;
+    }
+
+    else if(addr == 0xFF41){
+        gb_memory[addr] &= ~(0b1111 << 3);
+        gb_memory[addr] |= val & (0b1111 << 3);
     }
 
     else{
