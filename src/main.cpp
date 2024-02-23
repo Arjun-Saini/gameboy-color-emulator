@@ -70,15 +70,14 @@ int main(int argc, char* argv[]) {
         uint8_t TMA_reload_count = 0;
         if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count() > FRAME_MS_DELTA){
             last_time = current_time;
-
             ppu.WY_LY = false;
+
+//            db.print_gb_mem(DEBUG_VRAM, 32);
+//            std::cout << "_________________________________________________________________" << std::endl;
 
             // Loops through all t-cycles for this frame
             uint32_t total_cycles = 0;
             while(total_cycles < cpu.cycles_per_frame){
-
-                uint8_t wlc = ppu.window_line_counter;
-
                 if(cpu.halted || cpu.stopped){
                     // Fake CPU cycle
                     cpu.t_cycles++;

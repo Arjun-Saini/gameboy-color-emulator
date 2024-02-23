@@ -37,9 +37,12 @@ void Debug::print_gb_mem(int mode, int width) {
     }
 
     for(int i = start; i <= end; i++){
+        if(!(i % width)){
+            std::cout << std::hex << i << ": ";
+        }
         std::cout << std::hex << std::setfill('0') << std::setw(2) << int(cpu->mmu.read_byte(i)) << " ";
         if(!((i + 1) % 16)){
-//            std::cout << " | ";
+            std::cout << " | ";
         }
         if(!((i + 1) % width)){
             std::cout << std::endl;

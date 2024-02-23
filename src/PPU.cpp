@@ -44,6 +44,8 @@ void PPU::tick() {
             if((mmu->read_byte(LCD_STATUS) >> 5) & 1){
                 stat_interrupt = true;
             }
+
+            if(scanline == 0) std::cout << std::endl;
         }
 
         if(scan_pos < 80){
@@ -86,20 +88,25 @@ void PPU::tick() {
 
 void PPU::OAM_scan() {
     if(scan_pos % 2){
-        uint8_t sprite = (scan_pos + 1) / 2;
+        uint8_t sprite = (scan_pos) / 2;
+        uint8_t sprite_ID = mmu->read_byte(0xFE00 + sprite * 4 + 2);
         uint8_t sprite_X = mmu->read_byte(0xFE00 + sprite * 4 + 1);
         uint8_t sprite_Y = mmu->read_byte(0xFE00 + sprite * 4);
         uint8_t tile_size = ((mmu->read_byte(LCD_CONTROL) >> 2) & 1) * 8 + 8;
 
         if(sprite_X > 0 && scanline + 16 >= sprite_Y && scanline + 16 < sprite_Y + tile_size && sprite_buffer.size() < 10){
             sprite_buffer.push_back(sprite);
+
+//            if(scanline == 72){
+//                std::cout << std::hex << 0xFE00 + sprite * 4 << "|" << int(sprite_ID) << std::endl;
+//            }
         }
     }
 }
 
 void PPU::draw_pixels() {
     background_fetch();
-//    sprite_fetch();
+    sprite_fetch();
 
     if(!background_fifo.empty() && sprite_fetch_stage == 0){
         Pixel p = background_fifo.front();
@@ -150,11 +157,12 @@ void PPU::draw_pixels() {
         }
 
         if(((mmu->read_byte(LCD_CONTROL) >> 5) & 1) && WY_LY && LX >= mmu->read_byte(WX) - 7){
-            background_fetch_stage = 0;
             draw_background = false;
 
             if(!window_reset_on_scanline){
                 background_fetch_X = 0;
+                background_fifo = {};
+                background_fetch_stage = 0;
                 window_reset_on_scanline = true;
             }
         }
@@ -230,14 +238,14 @@ void PPU::background_fetch() {
             }
 
             if(draw_background){
-                tile_data_high_addr += 2 * ((mmu->read_byte(LY) + mmu->read_byte(LY_COMPARE)) % 8);
+                tile_data_high_addr += 2 * ((mmu->read_byte(LY) + mmu->read_byte(SCY)) % 8);
             }else{
                 tile_data_high_addr += 2 * (window_line_counter % 8);
             }
             tile_data_high = mmu->read_byte(tile_data_high_addr);
 
             // Reset fetcher on first iteration in a scanline
-            if(scan_pos == 5){
+            if(scan_pos == 85){
                 background_fetch_stage = 0;
             }else{
                 background_fetch_stage++;
