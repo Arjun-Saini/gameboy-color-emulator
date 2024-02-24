@@ -44,8 +44,6 @@ void PPU::tick() {
             if((mmu->read_byte(LCD_STATUS) >> 5) & 1){
                 stat_interrupt = true;
             }
-
-            if(scanline == 0) std::cout << std::endl;
         }
 
         if(scan_pos < 80){
@@ -89,17 +87,12 @@ void PPU::tick() {
 void PPU::OAM_scan() {
     if(scan_pos % 2){
         uint8_t sprite = (scan_pos) / 2;
-        uint8_t sprite_ID = mmu->read_byte(0xFE00 + sprite * 4 + 2);
         uint8_t sprite_X = mmu->read_byte(0xFE00 + sprite * 4 + 1);
         uint8_t sprite_Y = mmu->read_byte(0xFE00 + sprite * 4);
         uint8_t tile_size = ((mmu->read_byte(LCD_CONTROL) >> 2) & 1) * 8 + 8;
 
         if(sprite_X > 0 && scanline + 16 >= sprite_Y && scanline + 16 < sprite_Y + tile_size && sprite_buffer.size() < 10){
             sprite_buffer.push_back(sprite);
-
-//            if(scanline == 72){
-//                std::cout << std::hex << 0xFE00 + sprite * 4 << "|" << int(sprite_ID) << std::endl;
-//            }
         }
     }
 }
@@ -121,7 +114,7 @@ void PPU::draw_pixels() {
             Pixel sprite_pixel = sprite_fifo.front();
             sprite_fifo.pop();
 
-            if(!(sprite_pixel.color == 0 || sprite_pixel.background_priority == 1 && p.color != 0)){
+            if((mmu->read_byte(LCD_CONTROL) >> 1) & 1 && !(sprite_pixel.color == 0 || sprite_pixel.background_priority == 1 && p.color != 0)){
                 p = sprite_pixel;
             }
         }
@@ -276,6 +269,8 @@ void PPU::sprite_fetch() {
     for(int i = 0; i < sprite_buffer.size(); i++){
         uint8_t sprite_X = mmu->read_byte(0xFE00 + sprite_buffer.at(i) * 4 + 1);
         uint8_t sprite_Y = mmu->read_byte(0xFE00 + sprite_buffer.at(i) * 4);
+        uint8_t sprite_height = ((mmu->read_byte(LCD_CONTROL) >> 2) & 1) * 8 + 8;
+
         if(sprite_X <= LX + 8){
             background_fetch_stage = 0;
             switch (sprite_fetch_stage) {
@@ -284,26 +279,53 @@ void PPU::sprite_fetch() {
                     return;
                 case 1:
                     sprite_tile_ID = mmu->read_byte(0xFE00 + sprite_buffer.at(i) * 4 + 2);
+                    if(sprite_height == 16) sprite_tile_ID &= ~1;
+
                     sprite_flags = mmu->read_byte(0xFE00 + sprite_buffer.at(i) * 4 + 3);
                     sprite_fetch_stage++;
                     return;
                 case 3:
                     uint16_t sprite_data_low_addr;
                     sprite_data_low_addr = 0x8000 + sprite_tile_ID * 16;
-                    sprite_data_low_addr += 2 * (scanline - sprite_Y % 8);
+
+                    if(!((sprite_flags >> 6) & 1)){
+                        sprite_data_low_addr += 2 * (scanline + 16 - sprite_Y);
+                    }else{
+                        sprite_data_low_addr += 2 * (sprite_height - 1 - (scanline + 16 - sprite_Y));
+                    }
+
                     sprite_tile_data_low = mmu->read_byte(sprite_data_low_addr);
                     sprite_fetch_stage++;
                     return;
                 case 5:
                     uint16_t sprite_data_high_addr;
                     sprite_data_high_addr = 0x8000 + sprite_tile_ID * 16 + 1;
-                    sprite_data_high_addr += 2 * (scanline - sprite_Y % 8);
+
+                    if(!((sprite_flags >> 6) & 1)){
+                        sprite_data_high_addr += 2 * (scanline + 16 - sprite_Y);
+                    }else{
+                        sprite_data_high_addr += 2 * (sprite_height - 1 - (scanline + 16 - sprite_Y));
+                    }
+
                     sprite_tile_data_high = mmu->read_byte(sprite_data_high_addr);
                     sprite_fetch_stage++;
                     return;
                 case 6:
                     sprite_buffer.erase(sprite_buffer.begin() + i);
-                    for(int j = 7 - sprite_fifo.size(); j >= 0; j--){
+
+                    // Horizontal flip
+                    size_t start, end;
+                    int inc;
+                    if(!((sprite_flags >> 5) & 1)){
+                        start = 7 - sprite_fifo.size();
+                        end = -1;
+                        inc = -1;
+                    }else{
+                        start = sprite_fifo.size();
+                        end = 8;
+                        inc = 1;
+                    }
+                    for(size_t j = start; j != end; j += inc){
                         Pixel p = Pixel();
                         p.color = (((sprite_tile_data_high >> j) & 1) << 1) | ((sprite_tile_data_low >> j) & 1);
                         p.palette = OBP0 + ((sprite_flags >> 4) & 1);
