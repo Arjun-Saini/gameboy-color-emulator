@@ -40,8 +40,8 @@ int main(int argc, char* argv[]) {
     ppu.renderer = renderer;
 
     bool next_interrupt = false;
-    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/dmg-acid2/dmg-acid2");
-//    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/mealybug-tearoom-tests/ppu/m2_win_en_toggle");
+//    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/dmg-acid2/dmg-acid2");
+    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/mealybug-tearoom-tests/ppu/m2_win_en_toggle");
 
 
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -70,10 +70,6 @@ int main(int argc, char* argv[]) {
         uint8_t TMA_reload_count = 0;
         if (std::chrono::duration_cast<std::chrono::milliseconds>(current_time - last_time).count() > FRAME_MS_DELTA){
             last_time = current_time;
-            ppu.WY_LY = false;
-
-//            db.print_gb_mem(DEBUG_VRAM, 32);
-//            std::cout << "_________________________________________________________________" << std::endl;
 
             // Loops through all t-cycles for this frame
             uint32_t total_cycles = 0;

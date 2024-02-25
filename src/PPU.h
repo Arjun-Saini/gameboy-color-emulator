@@ -62,6 +62,8 @@ public:
     bool stat_interrupt = false;
     bool window_reset_on_scanline = false;
 
+    bool log = false;
+
     std::queue<Pixel> background_fifo;
     uint8_t background_fetch_stage = 0;
     uint8_t LX = 0;

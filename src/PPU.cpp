@@ -20,7 +20,6 @@ void PPU::tick() {
     }
 
     scan_pos = cycles % 456;
-
     if(scanline < 144){
         if(scan_pos == 0){
             h_blank = false;
@@ -43,6 +42,10 @@ void PPU::tick() {
 
             if((mmu->read_byte(LCD_STATUS) >> 5) & 1){
                 stat_interrupt = true;
+            }
+
+            if(scanline == 0){
+                WY_LY = false;
             }
         }
 
@@ -98,6 +101,28 @@ void PPU::OAM_scan() {
 }
 
 void PPU::draw_pixels() {
+    if(((mmu->read_byte(LCD_CONTROL) >> 5) & 1) && WY_LY && LX >= mmu->read_byte(WX) - 7){
+        draw_background = false;
+
+        if(!window_reset_on_scanline){
+            background_fetch_X = 0;
+            background_fifo = {};
+            background_fetch_stage = 0;
+            window_reset_on_scanline = true;
+        }
+    }
+
+    if(!draw_background){
+        log = true;
+    }
+    if(log && scan_pos == 80 && scanline == 0){
+        int temp = scanline;
+        bool one = (mmu->read_byte(LCD_CONTROL) >> 5) & 1;
+        bool two = WY_LY;
+        bool three = LX >= mmu->read_byte(WX) - 7;
+
+    }
+
     background_fetch();
     sprite_fetch();
 
@@ -110,6 +135,10 @@ void PPU::draw_pixels() {
             return;
         }
 
+        if(!(mmu->read_byte(LCD_CONTROL) & 1)){
+            p.color = 0;
+        }
+
         if(!sprite_fifo.empty()){
             Pixel sprite_pixel = sprite_fifo.front();
             sprite_fifo.pop();
@@ -120,6 +149,10 @@ void PPU::draw_pixels() {
         }
 
         uint8_t color = (mmu->read_byte(p.palette) >> (p.color * 2)) & 3;
+        if(!(mmu->read_byte(LCD_CONTROL) >> 7 & 1)){
+            color = 0;
+        }
+
         uint32_t hex_color;
         switch (color) {
             case 0:
@@ -146,17 +179,6 @@ void PPU::draw_pixels() {
 
             if((mmu->read_byte(LCD_STATUS) >> 3) & 1){
                 stat_interrupt = true;
-            }
-        }
-
-        if(((mmu->read_byte(LCD_CONTROL) >> 5) & 1) && WY_LY && LX >= mmu->read_byte(WX) - 7){
-            draw_background = false;
-
-            if(!window_reset_on_scanline){
-                background_fetch_X = 0;
-                background_fifo = {};
-                background_fetch_stage = 0;
-                window_reset_on_scanline = true;
             }
         }
     }
@@ -249,11 +271,7 @@ void PPU::background_fetch() {
             if(background_fifo.empty()){
                 for(int i = 7; i >= 0; i--){
                     Pixel p = Pixel();
-                    if(mmu->read_byte(LCD_CONTROL) & 1){
-                        p.color = (((tile_data_high >> i) & 1) << 1) | ((tile_data_low >> i) & 1);
-                    }else{
-                        p.color = 0;
-                    }
+                    p.color = (((tile_data_high >> i) & 1) << 1) | ((tile_data_low >> i) & 1);
 
                     p.palette = BGP;
                     background_fifo.push(p);

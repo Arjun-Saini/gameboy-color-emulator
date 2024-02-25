@@ -1,26 +1,67 @@
 # gameboy color emulator
- Emulates the Nintendo Game Boy Color (GBC) which can run games using MBC1, MBC2, MBC3 and MBC5 cartridges.
+Emulates the Nintendo Game Boy Color (GBC) which can 
+run games using MBC1, MBC2, MBC3 and MBC5 cartridges. 
+Maintains T-cycle accuracy across all components to 
+match performance and behavior of original hardware.
 ___
-## Resources
-##### Gameboy pandocs:
+## Building
+A `CMakeLists.txt` configuration file is provided for
+compilation of the project. The [SDL2 framework](https://github.com/libsdl-org/SDL/releases)
+is a required dependency for functional audio and graphics, this project was developed using
+SDL2 2.3.0.
+___
+## File Structure
+**main:** Manages high level control flow of program, 
+ensures that all components are synchronized.
+The [Game Boy pandocs](https://gbdev.io/pandocs/)
+contain most of the information necessary to understand
+the interactions and timings between each component.
 
-https://gbdev.io/pandocs/
+**CPU (Central Processing Unit):** Responsible for the 
+fetch-decode-execute cycle that translates cartridge ROM 
+data into C++ instructions. Contains internal registers, 
+including the program counter and stack pointer which
+identify the current state of the program. Services
+interrupts when requested. Details about the instruction 
+set can be found [here](https://rgbds.gbdev.io/docs/v0.7.0/gbz80.7),
+and their binary mappings can be found [here](https://izik1.github.io/gbops/index.html).
+[This](https://robertheaton.com/gameboy-doctor/) program 
+was used to help debug issues with the instruction set 
+implementation.
 
-##### CPU instructions:
+**MMU (Memory Management Unit):** Controls access to 
+internal memory, all ROM and RAM read/write operations 
+must pass through this component. Behavior is determined 
+by the MBC chip specified by the currently loaded cartridge.
+Each MBC chip has a certain ROM and RAM capacity and various 
+methods of switching between internal banks of memory.
 
-https://rgbds.gbdev.io/docs/v0.7.0/gbz80.7
+**PPU (Pixel Processing Unit):** Continuously draws pixels 
+to the screen at a rate of 1 pixel per 4 MHz cycle. Each 
+frame is divided into 154 scanlines, which are horizontal 
+slices with a height of 1 pixel each. The screen only has 
+a height of 144 pixels, so the last 10 scanlines are part 
+of the V-Blank period in which the PPU is essentially idle, 
+and it is safe for the CPU to access the VRAM. If the CPU 
+attempts to access VRAM while not in this mode, the MMU 
+will block the operation. For a more detailed explanation 
+of the various PPU modes and functionality, consult [these](https://hacktix.github.io/GBEDG/) 
+[resources](https://github.com/ISSOtm/pandocs/blob/rendering-internals/src/Rendering_Internals.md).
 
-##### Opcode table:
+**APU:** _CURRENTLY NOT IMPLEMENTED_
 
-https://izik1.github.io/gbops/index.html
+**Registers:** Contains eight 8-bit registers used by the 
+CPU to store data which can also be combined into 4 16-bit
+registers. Register F functions as a container for various
+flags set by arithmetic and logic instructions.
 
-##### Opcode debugger:
+**Timer:** Internal 4 MHz clock that is exposed as a 16 KHz
+clock to other hardware components. Requests interrupts
+at various intervals depending on the configuration.
 
-https://robertheaton.com/gameboy-doctor/
+**Pixel:** Used by the PPU as a container for pixel 
+attributes.
 
-##### PPU information:
-
-https://hacktix.github.io/GBEDG/
-
-
-https://github.com/ISSOtm/pandocs/blob/rendering-internals/src/Rendering_Internals.md
+**Debug:** Can print various formatted subsets of the
+system information and internal memory to make the
+data more human-readable.
