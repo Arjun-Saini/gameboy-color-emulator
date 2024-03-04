@@ -34,6 +34,7 @@ void PPU::tick() {
             sprite_buffer = {};
             draw_background = true;
             window_reset_on_scanline = false;
+            window_enable = (mmu->read_byte(LCD_CONTROL) >> 5) & 1;
 
             if(window_on_scanline){
                 window_line_counter++;
@@ -101,7 +102,7 @@ void PPU::OAM_scan() {
 }
 
 void PPU::draw_pixels() {
-    if(((mmu->read_byte(LCD_CONTROL) >> 5) & 1) && WY_LY && LX >= mmu->read_byte(WX) - 7){
+    if(window_enable && WY_LY && LX >= mmu->read_byte(WX) - 7){
         draw_background = false;
 
         if(!window_reset_on_scanline){
@@ -110,17 +111,6 @@ void PPU::draw_pixels() {
             background_fetch_stage = 0;
             window_reset_on_scanline = true;
         }
-    }
-
-    if(!draw_background){
-        log = true;
-    }
-    if(log && scan_pos == 80 && scanline == 0){
-        int temp = scanline;
-        bool one = (mmu->read_byte(LCD_CONTROL) >> 5) & 1;
-        bool two = WY_LY;
-        bool three = LX >= mmu->read_byte(WX) - 7;
-
     }
 
     background_fetch();

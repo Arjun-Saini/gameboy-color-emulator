@@ -36,15 +36,10 @@ by the MBC chip specified by the currently loaded cartridge.
 Each MBC chip has a certain ROM and RAM capacity and various 
 methods of switching between internal banks of memory.
 
-**PPU (Pixel Processing Unit):** Continuously draws pixels 
-to the screen at a rate of 1 pixel per 4 MHz cycle. Each 
-frame is divided into 154 scanlines, which are horizontal 
-slices with a height of 1 pixel each. The screen only has 
-a height of 144 pixels, so the last 10 scanlines are part 
-of the V-Blank period in which the PPU is essentially idle, 
-and it is safe for the CPU to access the VRAM. If the CPU 
-attempts to access VRAM while not in this mode, the MMU 
-will block the operation. For a more detailed explanation 
+**PPU (Pixel Processing Unit):** Cycles between
+fetch, draw, and idle modes to continuously update the
+screen. When the PPU is drawing pixels, it does so at 
+a rate of 1 per 4 MHz cycle. For a more detailed explanation 
 of the various PPU modes and functionality, consult [these](https://hacktix.github.io/GBEDG/) 
 [resources](https://github.com/ISSOtm/pandocs/blob/rendering-internals/src/Rendering_Internals.md).
 

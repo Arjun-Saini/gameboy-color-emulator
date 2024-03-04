@@ -93,10 +93,6 @@ uint8_t MMU::read_byte(uint16_t addr) {
 }
 
 void MMU::write_byte(uint16_t addr, uint8_t val) {
-    if(addr == 0xFF40){
-
-    }
-
     // RAM enable/disable
     if(0x0000 <= addr && addr <= 0x1FFF){
         if(MBC == 1){

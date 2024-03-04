@@ -61,6 +61,7 @@ public:
     bool prev_stat_interrupt = false;
     bool stat_interrupt = false;
     bool window_reset_on_scanline = false;
+    bool window_enable = false;
 
     bool log = false;
 

@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 
     bool next_interrupt = false;
 //    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/dmg-acid2/dmg-acid2");
-    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/mealybug-tearoom-tests/ppu/m2_win_en_toggle");
+    cpu.mmu.load_ROM(argv[0], "game-boy-test-roms-v6.0/mealybug-tearoom-tests/ppu/m3_bgp_change");
 
 
     std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
